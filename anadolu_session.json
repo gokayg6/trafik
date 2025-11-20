@@ -1,0 +1,42 @@
+{
+  "cookies": [
+    {
+      "name": "per2",
+      "value": "!1HlA47AIqpggINerAYmkXO4Npqv2xhmibed4vpGZMsZFuoplRBbd1vLkbDFmfRAEK84ubWRntI92",
+      "domain": "asenta.anadolusigorta.com.tr",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "TS01e4ab57",
+      "value": "01cd8ae7b1cbac8b88efdb642763d2be0e49ae6974ff58c97e19edeb2015b472436344fc80cfcaf729cd7f83a56a6bd7496b0bfc55",
+      "domain": ".asenta.anadolusigorta.com.tr",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "TS507040d2027",
+      "value": "08bd4c42d4ab20004642573b54b32c98a56ed40217d35753f9f751e975d172b0dc4d33907accc0b208f1fd5dcb1130009d0fe4a910821528bd1c2666da0b64fb895ce19ff174528d5f8762f96d1fd837b36b1fdd68a85afa8c1c8cd8aad243ba",
+      "domain": "asenta.anadolusigorta.com.tr",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "localStorage": {
+    "AS_DEVICE_ID": "2024803215",
+    "version": "0.5",
+    "persist:root": "{\"adminAnnouncement\":\"\\\"U2FsdGVkX19pzZPHVU2rduv8AW3ctEI+0YJ2bybm5Mo6Wrxa1AHZpiXTZL6pxzk7a2sGyml/lHRvXNhQ3sF7Q0Hpdh3dR2GghtWwyZ83VEr/ag4Fu1EylynXZmIgmR47KhQyWNHsOamvoQOFvD4YCTG7yBurIpGQL9gZUBJgqvfpK/Z+CCw5+xRGPxsIJlV1tSaQLNNSZZ7SZ3UutchuZs2g2IELP3WT7gkfija28kI=\\\"\",\"circularInfo\":\"\\\"U2FsdGVkX1/L1zdtzVNZE+WiMjOR/576a6ZqHQOSwxhDra1QcIX7BwkVawcQfIyR\\\"\",\"contactInfo\":\"\\\"U2FsdGVkX1/sVqHeK0aD4/XJvJ3RAaor9MXsClXl05p+eiYw7TdsdeEaePeP3TtFwhIzN8f6yohMvIApe9JvWA==\\\"\",\"chooseAgency\":\"\\\"U2FsdGVkX1+abpejQ8zRAcYLWrrp5dbtW4L5brJAtv0=\\\"\",\"login\":\"\\\"U2FsdGVkX18dFENfSKyGwe0AZEWWMovsafZOK86URcspNzL0VhlBc7Xio80GXCDjvpB21iAXC03E3Wed3uVWVYnMCUrL85mED7lI8TcTyLFYA7NYXuyUvnUgEfE2qY0N78tzn2mJSzXqWxEAgDadRxvlPCYl2LJHZZVqYk76l6SAYi92SSBEIKwzImwApTfxOmWV0OxGf9qPTSxj661Pbsc7o6TYLRB5UdR4tlPKByoMJD/GBNioosssA1eNJDUB/vRlFspJYG7HEqHxUjOVbn10c7Gxo2pURu8J2102CNxG1Hw8MzbdGQV1pPrNZwBnc/4K5ScKPxsQKBdPbhpK+qHNahuGGkt3TD/dvOMxVHZcZbbhSBTVeJ0ZhmibWupXUNxd8KDMD4Z9CQdgWJIzJMOpatYmIREH8HwTCVDrqMJYIvPb+URVH8O4/yfbpwc/dUJxDT5mCqTZIkRCX36hkkPNT2icNglY4Fl6vnYVpF3yYq8lADp9DqGVYbmiRfql\\\"\",\"dask\":\"\\\"U2FsdGVkX19AoP9EFh2O7/J62EC01PNd5pcEv7iH15D5s5rycoRH9W5mLk/z/NLhpU/ZtrviDaTfVn+OsSlCiHCtu/HabUWPokxLeejRt9eBW7tXbfdD/lD+NS+5xC0H\\\"\",\"bireyselSiber\":\"\\\"U2FsdGVkX18tmztfVsfC5fDTjjpnHlkCWaJ1+cB3LrRDCx4yD69xeDvjs5rAg40PhsYKybYwEmZbvXxWcYKlHUCDbDxmpI2JKVixjsJ6YMPUQ1iNhQ89R0xfE35Tuq3PqSatbPVyvGjWjp9F8s5PUaVJIBEslEI4a2Z+e2K5ONsYh5227dfQ/SONljotZ6wTKBqeGsoDdxIv3oNgaxABnAgsoPkyqK0zQ8YxUVbZi7Obz3zgjGb3rB5L/VdlqVZkhFBee4TXKhrQ/M9vU6+aaA==\\\"\",\"policyServices\":\"\\\"U2FsdGVkX1+uzXz8QGxu3JRE7PqnmrezDsa923CREhdC3qWRqPLgEM57AdlpSITc20n9zDtEEoiUUVB/PWGBRQwDOWW/drCUaZJ7TKq2Ka25/jb3OCr/08PHZs3uWUFO\\\"\",\"trafficPackage\":\"\\\"U2FsdGVkX19DCQH2LH7OGgtk1Q1TaFoQy6Qdk6NrfIRWJWOMNSHRDt2NK3/yBgd9MCNt9uzL3OqEi9CFMv6GgZ1m+u6dCZj+vBbivgurs3YXCFeYct8fzUDMZV1KV5pfN6QDHiiBD4Rl02O9nTmznqcONE3ODP3U0CRGogZHoyE=\\\"\",\"healthInvoice\":\"\\\"U2FsdGVkX1/cdniL+6+LqGLHwiNDcUu2fEuOWzakICV05d9c5SehILG8IjWScdwEChDJcGqYyNQnffexGaVhcuxayca/3PUipbCpE1rgwvQ=\\\"\",\"pas\":\"\\\"U2FsdGVkX1+CaG0yqoHXr87lyZRRWOTjoUkVS754Mr8=\\\"\",\"healthCalculatePremium\":\"\\\"U2FsdGVkX1+a6M/NQQrlkfdoWvhXT7Lu1/4ofGZ+Z6GoK4dGh54yLG+2/VS+kki1RecJ2tHd3ZmpXvFzWr+V3qu4NN6K06e+LB6SA3ExNH/zXH/35SyTo3akiP9UvN1yfIfTcppouWja+NqsUIE7aO3xZlPSdQmH9g7HLeGIlAiVs4RI1HXM7V9shXlVPmfvnAdpLsYx8CB2mQreR7GDbq8HX98g+BLAMr++HZsydHs=\\\"\",\"visits\":\"\\\"U2FsdGVkX1/jNJU64L+81NhEJ8lajmznLqTvKE2co150lmdnRl2Hi/enHwmPVwuV3u4G2VSXerUTqRGCmHCREzHG9n5mdLmByEd4CzpJ88af+qPzOEqInvpfP+nQa8dFSrvwiaebHXoj+tH503Q7bQ==\\\"\",\"announcement\":\"\\\"U2FsdGVkX1/Z25ZnMz2/lIQTvho+tfRIf0FpVYNpA3mdWvbME0bVHqaQ4j02L1Zr\\\"\",\"aspara\":\"\\\"U2FsdGVkX19050X5tjoGVQz2nifuXncqB7ioy88LRYUk4RL+ChH2QIrFO9CmmmeUtAOyGfQx44JZcTEIVR7oica/Ldk7KwownSP3nInsj/QVYfp6cXEWVyliPQ1159+wEmWJjXxrR4jtKOakJFmRxR1yQHtVcQdKH3brGP9Dg0EuBvVbPXjHVwpCFciNMUtUuGPPUPsibAwh2WtOEz+KvbNV2n/LyH0vlh1H6Szgz68Lt09/2FRkQPr3PV2N1UMcg2taepJ9uGM+dXli2kFV9IR0qL5wNrPJZANtmjZjdEvR2RcYeSaTw+6lnXFLdjO9FRz/QFqGxReffBGxj7rOZCccUzkrwOIeqopR8bx7ebNPNEzpUCa+Su/SBy/6xgGvioExdEdjAdD5p5V2INsPnJRyPwNaNhKurT3qN+czVNvRg/8E5hpclD7h3lhsL1tm\\\"\",\"pointStatus\":\"\\\"U2FsdGVkX1+EFOKq63i/4UXYPMgFl4hc0uAeX3FKpwvs/lmYwj+gJy+XPIo2e1iLS02hTr+iVsi5mjC5cQjBgxCDN4/bI+4DcjV1WByyx7s=\\\"\",\"cityWinners\":\"\\\"U2FsdGVkX18j5MEmyntixBDnOaEcSEOtEo/TGYmSXdwbLTitKg8Deyy/NSX3z29k0E/Sr3zDsHB+YrZqn/fPQoIDCvDhr5aTvlj/Fc4sTFQ=\\\"\",\"agencyProposalReport\":\"\\\"U2FsdGVkX1+MO6Zxd3HnDCguZ9wjAdckgG8GT7trUbk=\\\"\",\"nonCollectiblePolicies\":\"\\\"U2FsdGVkX186oiKMjNN6Q6z9ZZOPIAqmD448JfoMaxU=\\\"\",\"renewalList\":\"\\\"U2FsdGVkX180SYiHhpusDZogMfnqsKbhq2fOpNW3+Cw=\\\"\",\"sksProposalDashboardReport\":\"\\\"U2FsdGVkX19aiqjynxggTLRwpS0r9rSf3NOofmfTbKE=\\\"\",\"agencyClaimReport\":\"\\\"U2FsdGVkX19L18IFNQFyLlgt2fESgJudwJetlMqbB4gwQI8Q6C15kP9l4BsrsMw3\\\"\",\"salesOpportunities\":\"\\\"U2FsdGVkX189fIPBwQj8XcS9Rl82CRxGTebrl7WO9sU=\\\"\",\"groupHealth\":\"\\\"U2FsdGVkX19Z2A9FUg8qGtFbHM85epXR6G9CKY8lY1sqAbtaRWcd2zOprTwTZZhmUCQErLfwJlqOwynWC6lSRJ/B5Ul3xhjQ64VCCMqkxljHwsCAbHoeOGgj1NfBpr6hgFfJjfNXXHds3uEb5eBllZ7lO86QxML+WtNjFKqH+gH3gEwr5HPleSwY6c4arMky48UT46yFPcAP+Zv+5lLHGKARa9ozeeOr3JKkYuNnh/r+6u4/6H442lat4mPoD95jz8Yr/MPP+sw/9BztZDWHLZZWW75Ty15iyhkiIpqSMDM=\\\"\",\"qlik\":\"\\\"U2FsdGVkX1/9YHKSgTVHpWdxmRkUWjIzycfr39s8BN4=\\\"\",\"campaigns\":\"\\\"U2FsdGVkX19MJm9f5qDdYq92BPsh8LSIusPGReqCE091dtjZtzhhP292WXGqzoq7\\\"\",\"_persist\":\"\\\"U2FsdGVkX194eOqZCIj7bPizp+5Sg4AXGphnRf9HZBucYiU6GDgEzs9P8PtG16Eb\\\"\"}"
+  },
+  "sessionStorage": {},
+  "url": "https://asenta.anadolusigorta.com.tr/giris-onay",
+  "timestamp": 1762725060.2438524
+}

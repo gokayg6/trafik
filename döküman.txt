@@ -1,0 +1,123 @@
+SOMPO SIGORTA API DOKÜMANI
+==========================
+
+TEMEL BİLGİLER
+--------------
+Temel URL: http://localhost:8000
+API Versiyon: 1.0.0
+
+ENDPOINT LİSTESİ
+----------------
+
+1. GET /
+   - Amaç: API ana sayfası ve durum bilgisi
+   - Response: API versiyon ve scraper durumu
+
+2. GET /health
+   - Amaç: Sistem sağlık kontrolü
+   - Response: Sistem durumu ve timestamp
+
+3. POST /test/scraper
+   - Amaç: Scraper bağlantı testi
+   - Response: Scraper modülü durumu ve mevcut fonksiyonlar
+
+4. POST /teklif/trafik
+   - Amaç: Trafik sigortası teklifi oluşturma
+   - Gerekli Alanlar: tckn, email, plaka, ruhsat_seri_no
+   - Opsiyonel: arac_modeli, telefon, dogum_tarihi
+   - Response: İşlem ID ve durum bilgisi
+
+5. POST /teklif/kasko
+   - Amaç: Kasko sigortası teklifi oluşturma
+   - Gerekli Alanlar: tckn, email, plaka, ruhsat_seri_no
+   - Opsiyonel: arac_modeli, meslek, telefon, dogum_tarihi
+   - Response: İşlem ID ve durum bilgisi
+
+6. POST /teklif/saglik
+   - Amaç: Tamamlayıcı sağlık sigortası teklifi oluşturma
+   - Gerekli Alanlar: tckn, email
+   - Opsiyonel: prim_tipi, meslek_saglik, teminat_sayisi, telefon, dogum_tarihi
+   - Response: İşlem ID ve durum bilgisi
+
+7. POST /teklif/dask/yenileme
+   - Amaç: DASK poliçe yenileme teklifi oluşturma
+   - Gerekli Alanlar: tckn, email, dask_police_no
+   - Opsiyonel: telefon, dogum_tarihi
+   - Response: İşlem ID ve durum bilgisi
+
+8. POST /teklif/dask/yeni
+   - Amaç: Yeni DASK poliçe teklifi oluşturma
+   - Gerekli Alanlar: tckn, email, dask_adres_kodu
+   - Opsiyonel: telefon, dogum_tarihi
+   - Response: İşlem ID ve durum bilgisi
+
+9. GET /durum/{islem_id}
+   - Amaç: İşlem durumu sorgulama
+   - Parametre: islem_id (UUID)
+   - Response: İşlem durumu, sonuç veya hata bilgisi
+
+10. GET /islemler
+    - Amaç: Aktif işlemleri listeleme
+    - Response: Aktif işlem sayısı ve detayları
+
+DATA MODELLERİ
+--------------
+
+Ortak Alanlar (Tüm Sigorta Türleri):
+- tckn: 11 haneli TC Kimlik No (zorunlu)
+- email: Geçerli email adresi (zorunlu)
+- telefon: Telefon numarası (opsiyonel)
+- dogum_tarihi: GG/AA/YYYY formatında (opsiyonel)
+
+Trafik Sigortası:
+- plaka: Araç plakası (5-10 karakter, zorunlu)
+- ruhsat_seri_no: Ruhsat seri numarası (4-20 karakter, zorunlu)
+- arac_modeli: Araç model bilgisi (opsiyonel)
+
+Kasko Sigortası:
+- plaka: Araç plakası (5-10 karakter, zorunlu)
+- ruhsat_seri_no: Ruhsat seri numarası (4-20 karakter, zorunlu)
+- arac_modeli: Araç model bilgisi (opsiyonel)
+- meslek: Meslek bilgisi (opsiyonel)
+
+Sağlık Sigortası:
+- prim_tipi: Prim tipi seçeneği (opsiyonel)
+- meslek_saglik: Meslek bilgisi (opsiyonel)
+- teminat_sayisi: Teminat sayısı (3,5,7,10,12 opsiyonel)
+
+DASK Sigortası:
+- dask_police_no: Mevcut DASK poliçe numarası (yenileme için)
+- dask_adres_kodu: UAVT adres kodu (yeni poliçe için)
+
+DURUM KODLARI
+-------------
+
+İşlem Durumları:
+- "calisiyor": İşlem devam ediyor
+- "tamamlandi": İşlem başarıyla tamamlandı
+- "hata": İşlem hata ile sonuçlandı
+
+HTTP Status Kodları:
+- 200: Başarılı
+- 400: Geçersiz istek
+- 404: İşlem bulunamadı
+- 503: Scraper kullanılamıyor
+
+ÖRNEK KULLANIM
+--------------
+
+1. Trafik Sigortası Teklifi:
+POST /teklif/trafik
+{
+  "tckn": "40840299196",
+  "email": "ornek@mail.com",
+  "plaka": "34ABC123",
+  "ruhsat_seri_no": "GB783183",
+  "arac_modeli": "Megane"
+}
+
+2. Durum Sorgulama:
+GET /durum/123e4567-e89b-12d3-a456-426614174000
+
+3. Aktif İşlemler:
+GET /islemler
