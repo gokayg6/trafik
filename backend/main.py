@@ -16,8 +16,9 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 
 # Windows için asyncio event loop policy ayarla (Playwright için)
+# ProactorEventLoop subprocess desteği için gerekli
 if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # Local imports
 from backend.database import get_db, init_db
@@ -88,22 +89,24 @@ def run_sompo_scraper(branch: str, data: Dict[str, Any], request_id: str) -> Opt
     """Sompo scraper'ı çalıştır"""
     import sys
     import os
-    # Windows için asyncio event loop policy ve yeni loop oluştur (thread pool için)
+    
+    # Windows için asyncio event loop policy ayarla
+    # ProactorEventLoop subprocess desteği için gerekli
     if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-        # Thread'de yeni event loop oluştur
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    
+    # Event loop oluşturma - Playwright kendi loop'unu oluşturacak
+    # Sadece policy ayarlıyoruz
+    
     try:
+        logger.info(f"[Sompo] Scraper başlatılıyor - branch: {branch}")
         sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'scrapers_event'))
         from sompo_event import (
             sync_playwright, login_and_save, handle_popups, 
             open_new_offer_page, process_trafik_sigortasi, process_kasko_sigortasi
         )
         
+        logger.info(f"[Sompo] Playwright başlatılıyor...")
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=os.getenv("HEADLESS", "false").lower() == "true")
             context = browser.new_context()
@@ -157,44 +160,58 @@ def run_sompo_scraper(branch: str, data: Dict[str, Any], request_id: str) -> Opt
             if result and result.get('basarili'):
                 return StandardOffer.from_sompo_result(result, data.get('tckn', ''), data.get('plaka'))
             else:
+                error_msg = 'Sonuç alınamadı'
+                if result:
+                    error_msg = result.get('hata', 'Teklif alınamadı')
+                    if not error_msg or error_msg.strip() == '':
+                        error_msg = 'Teklif alınamadı'
                 return StandardOffer(
                     company="Sompo",
                     branch=branch,
                     tckn=data.get('tckn', ''),
                     plate=data.get('plaka'),
                     status="failed",
-                    error=result.get('hata', 'Bilinmeyen hata') if result else 'Sonuç alınamadı'
+                    error=error_msg
                 )
             
     except Exception as e:
         logger.error(f"Sompo scraper hatası: {e}", exc_info=True)
+        import traceback
+        error_detail = str(e)
+        if not error_detail or error_detail.strip() == '':
+            error_detail = f"Sompo scraper exception: {type(e).__name__}"
         return StandardOffer(
             company="Sompo",
             branch=branch,
             tckn=data.get('tckn', ''),
             plate=data.get('plaka'),
             status="failed",
-            error=str(e)
+            error=error_detail
         )
+    # Finally bloğunu kaldırdık - Playwright kendi event loop'unu yönetir
+    # Event loop'u kapatmak Playwright'ı bozuyor
 
 
 def run_koru_scraper(branch: str, data: Dict[str, Any], request_id: str) -> Optional[StandardOffer]:
     """Koru scraper'ı çalıştır"""
     import sys
-    # Windows için asyncio event loop policy ve yeni loop oluştur (thread pool için)
+    
+    # Windows için asyncio event loop policy ayarla
+    # ProactorEventLoop subprocess desteği için gerekli
     if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-        # Thread'de yeni event loop oluştur
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    
+    # Event loop oluşturma - Playwright kendi loop'unu oluşturacak
+    # Sadece policy ayarlıyoruz
+    
     try:
+        logger.info(f"[Koru] Scraper başlatılıyor - branch: {branch}")
         from scrapers_event.koru_scraper import KoruScraper
         from scrapers_event.app.config import settings
         
+        logger.info(f"[Koru] KoruScraper instance oluşturuluyor...")
         scraper = KoruScraper()
+        logger.info(f"[Koru] KoruScraper instance oluşturuldu")
         
         # Koru için data formatını dönüştür
         koru_data = {
@@ -207,10 +224,13 @@ def run_koru_scraper(branch: str, data: Dict[str, Any], request_id: str) -> Opti
         }
         
         # Scraper'ı çalıştır (thread pool içinde)
+        logger.info(f"[Koru] Scraper çalıştırılıyor - branch: {branch}, data: {koru_data}")
         if branch == "trafik":
             result = scraper.run_trafik_with_data(koru_data)
+            logger.info(f"[Koru] run_trafik_with_data sonucu: {result}")
         elif branch == "kasko":
             result = scraper.run_kasko_with_data(koru_data)
+            logger.info(f"[Koru] run_kasko_with_data sonucu: {result}")
         else:
             return StandardOffer(
                 company="Koru",
@@ -252,24 +272,29 @@ def run_koru_scraper(branch: str, data: Dict[str, Any], request_id: str) -> Opti
             status="failed",
             error=error_detail
         )
+    # Finally bloğunu kaldırdık - Playwright kendi event loop'unu yönetir
+    # Event loop'u kapatmak Playwright'ı bozuyor
 
 
 def run_doga_scraper(branch: str, data: Dict[str, Any], request_id: str) -> Optional[StandardOffer]:
     """Doğa scraper'ı çalıştır"""
     import sys
-    # Windows için asyncio event loop policy ve yeni loop oluştur (thread pool için)
+    
+    # Windows için asyncio event loop policy ayarla
+    # ProactorEventLoop subprocess desteği için gerekli
     if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-        # Thread'de yeni event loop oluştur
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    
+    # Event loop oluşturma - Playwright kendi loop'unu oluşturacak
+    # Sadece policy ayarlıyoruz
+    
     try:
+        logger.info(f"[Doğa] Scraper başlatılıyor - branch: {branch}")
         from scrapers_event.doga_scraper import DogaScraper
         
+        logger.info(f"[Doğa] DogaScraper instance oluşturuluyor...")
         scraper = DogaScraper()
+        logger.info(f"[Doğa] DogaScraper instance oluşturuldu")
         
         # Doğa için data formatını dönüştür
         doga_data = {
@@ -282,7 +307,9 @@ def run_doga_scraper(branch: str, data: Dict[str, Any], request_id: str) -> Opti
         }
         
         # Scraper'ı çalıştır
+        logger.info(f"[Doğa] Scraper çalıştırılıyor - branch: {branch}, data: {doga_data}")
         result = scraper.run_with_data(branch, doga_data)
+        logger.info(f"[Doğa] run_with_data sonucu: {result}")
         
         if result and result.get('premium_data'):
             return StandardOffer.from_doga_result(result, data.get('tckn', ''), data.get('plaka'))
@@ -305,7 +332,7 @@ def run_doga_scraper(branch: str, data: Dict[str, Any], request_id: str) -> Opti
         logger.error(f"Doğa scraper hatası: {e}", exc_info=True)
         import traceback
         error_detail = str(e)
-        if not error_detail:
+        if not error_detail or error_detail.strip() == '':
             error_detail = f"Doğa scraper exception: {type(e).__name__}"
         return StandardOffer(
             company="Doğa",
@@ -315,13 +342,16 @@ def run_doga_scraper(branch: str, data: Dict[str, Any], request_id: str) -> Opti
             status="failed",
             error=error_detail
         )
+    # Finally bloğunu kaldırdık - Playwright kendi event loop'unu yönetir
+    # Event loop'u kapatmak Playwright'ı bozuyor
 
 
 # Scraper mapping
 SCRAPER_FUNCTIONS = {
     InsuranceCompany.SOMPO: run_sompo_scraper,
-    InsuranceCompany.KORU: run_koru_scraper,
-    InsuranceCompany.DOGA: run_doga_scraper,
+    # TEST İÇİN SADECE SOMPO AKTİF
+    # InsuranceCompany.KORU: run_koru_scraper,
+    # InsuranceCompany.DOGA: run_doga_scraper,
     # Diğer şirketler için de eklenebilir
 }
 
@@ -442,7 +472,7 @@ async def process_scrape_request(
         offers = []
         failed_companies = []
         
-        # Windows'ta thread pool yerine doğrudan çalıştırmak için loop'a ihtiyaç yok
+        # Event loop'u al (Linux'ta thread pool için gerekli)
         loop = None
         if sys.platform != "win32":
             loop = asyncio.get_event_loop()
@@ -456,9 +486,11 @@ async def process_scrape_request(
             try:
                 scraper_func = SCRAPER_FUNCTIONS[company]
                 
-                # Thread pool'da çalıştır (Windows'ta event loop sorunu nedeniyle doğrudan çalıştır)
+                # Windows'ta thread pool yerine doğrudan çalıştır (Playwright event loop sorunu nedeniyle)
+                # Linux'ta thread pool kullan
                 if sys.platform == "win32":
-                    # Windows'ta thread pool yerine doğrudan çalıştır (blocking)
+                    logger.info(f"[{company.value}] Windows'ta doğrudan çalıştırılıyor (thread pool yok)")
+                    # Windows'ta doğrudan senkron çalıştır (blocking ama çalışır)
                     result = scraper_func(
                         request.branch.value,
                         data,
@@ -466,6 +498,8 @@ async def process_scrape_request(
                     )
                 else:
                     # Linux'ta thread pool kullan
+                    if loop is None:
+                        loop = asyncio.get_event_loop()
                     result = await loop.run_in_executor(
                         thread_pool,
                         scraper_func,
@@ -502,13 +536,24 @@ async def process_scrape_request(
                     logger.info(f"✅ {company.value} teklifi başarılı: {result.price} {result.currency}")
                 else:
                     # Hata kaydı
-                    error_msg = result.error if result else "Bilinmeyen hata"
+                    error_msg = "Bilinmeyen hata"
+                    if result:
+                        error_msg = result.error if result.error and result.error.strip() else "Teklif alınamadı"
+                    else:
+                        error_msg = "Scraper sonuç döndürmedi"
+                    
+                    if not error_msg or error_msg.strip() == '':
+                        error_msg = f"{company.value} teklif alınamadı"
+                    
                     failed_companies.append(f"{company.value}: {error_msg}")
                     logger.error(f"❌ {company.value} teklifi başarısız: {error_msg}")
                     
             except Exception as e:
                 logger.error(f"❌ {company.value} scraper hatası: {e}", exc_info=True)
-                failed_companies.append(f"{company.value}: {str(e)}")
+                error_msg = str(e)
+                if not error_msg or error_msg.strip() == '':
+                    error_msg = f"{company.value} scraper exception: {type(e).__name__}"
+                failed_companies.append(f"{company.value}: {error_msg}")
                 
                 # Log kaydı (eğer database mevcut ise)
                 try:
@@ -632,8 +677,9 @@ async def get_company_settings(db: Session = Depends(get_db)):
     settings = db.query(CompanySettings).all()
     
     # Eğer hiç ayar yoksa, varsayılan ayarları oluştur
+    # TEST İÇİN SADECE SOMPO
     if not settings:
-        default_companies = [c for c in DBInsuranceCompany]
+        default_companies = [DBInsuranceCompany.SOMPO]  # Sadece Sompo
         for company in default_companies:
             setting = CompanySettings(
                 company=company,

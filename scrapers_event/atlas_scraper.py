@@ -10,8 +10,9 @@ import pyotp # 'run_bireysel_kasko' fonksiyonundan import'u buraya taşıdım
 import traceback # Hata ayıklama için
 
 # Windows için asyncio event loop policy ayarla (Playwright için)
+# ProactorEventLoop subprocess desteği için gerekli
 if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 class AtlasScraper:
     def __init__(self):

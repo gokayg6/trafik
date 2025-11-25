@@ -11,8 +11,9 @@ import time
 import random
 
 # Windows için asyncio event loop policy ayarla (Playwright için)
+# ProactorEventLoop subprocess desteği için gerekli
 if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 class SekerScraper:
     def __init__(self):

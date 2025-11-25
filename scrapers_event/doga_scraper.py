@@ -7,8 +7,9 @@ import time
 import random
 
 # Windows için asyncio event loop policy ayarla (Playwright için)
+# ProactorEventLoop subprocess desteği için gerekli
 if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 class DogaScraper:
     def __init__(self):
@@ -24,7 +25,11 @@ class DogaScraper:
         self.username  = os.getenv("DOGA_USER", "").strip()
         self.password  = os.getenv("DOGA_PASS", "").strip()
         self.totp_secret = os.getenv("DOGA_TOTP_SECRET", "").strip()
+        # Headless modu - varsayılan olarak False (görünür mod)
         self.headless  = os.getenv("HEADLESS", "false").lower() == "true"
+        # Debug için headless'i False yap
+        if os.getenv("DOGA_DEBUG", "false").lower() == "true":
+            self.headless = False
         self.timeout   = int(os.getenv("DOGA_TIMEOUT_MS", "45000"))
 
         if not self.login_url:
@@ -53,6 +58,22 @@ class DogaScraper:
 
     def run(self):
         """Ana çalıştırma fonksiyonu"""
+        # Windows için event loop policy ayarla (her run'da)
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+            # Mevcut event loop'u kapat ve yeni bir tane oluştur
+            try:
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop and not loop.is_closed():
+                        loop.close()
+                except RuntimeError:
+                    pass
+            except:
+                pass
+            # Yeni event loop oluştur
+            asyncio.set_event_loop(asyncio.new_event_loop())
+        
         browser = None
         context = None
         page = None
@@ -882,6 +903,22 @@ class DogaScraper:
             "tescil_seri_no": "993016"
         }
         """
+        # Windows için event loop policy ayarla (her run'da)
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+            # Mevcut event loop'u kapat ve yeni bir tane oluştur
+            try:
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop and not loop.is_closed():
+                        loop.close()
+                except RuntimeError:
+                    pass
+            except:
+                pass
+            # Yeni event loop oluştur
+            asyncio.set_event_loop(asyncio.new_event_loop())
+        
         browser = None
         context = None
         page = None
@@ -918,11 +955,20 @@ class DogaScraper:
             raise
         finally:
             if page:
-                page.close()
+                try:
+                    page.close()
+                except Exception:
+                    pass
             if context:
-                context.close()
+                try:
+                    context.close()
+                except Exception:
+                    pass
             if browser:
-                browser.close()
+                try:
+                    browser.close()
+                except Exception:
+                    pass
 
 
 # Kullanım örneği

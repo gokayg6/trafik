@@ -12,8 +12,9 @@ from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 import time
 
 # Windows için asyncio event loop policy ayarla (Playwright için)
+# ProactorEventLoop subprocess desteği için gerekli
 if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 # Logging kurulumu
 logging.basicConfig(
@@ -33,7 +34,11 @@ class KoruScraper:
             except Exception:
                 pass
         self.login_url = os.getenv("KORU_LOGIN_URL", "").strip()
+        # Headless modu - varsayılan olarak False (görünür mod)
         self.headless = os.getenv("HEADLESS", "false").lower() == "true"
+        # Debug için headless'i False yap
+        if os.getenv("KORU_DEBUG", "false").lower() == "true":
+            self.headless = False
         self.timeout_ms = int(os.getenv("KORU_TIMEOUT_MS", "45000"))
         self.username = os.getenv("KORU_USER", "").strip()
         self.password = os.getenv("KORU_PASS", "").strip()
@@ -492,6 +497,22 @@ class KoruScraper:
 
     def run(self, trafik_data=None, kasko_data=None):
         """Ana çalıştırma fonksiyonu"""
+        # Windows için event loop policy ayarla (her run'da)
+        if sys.platform == "win32":
+            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+            # Mevcut event loop'u kapat ve yeni bir tane oluştur
+            try:
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop and not loop.is_closed():
+                        loop.close()
+                except RuntimeError:
+                    pass
+            except:
+                pass
+            # Yeni event loop oluştur
+            asyncio.set_event_loop(asyncio.new_event_loop())
+        
         browser = None
         try:
             with sync_playwright() as pw:
@@ -542,10 +563,7 @@ class KoruScraper:
         except Exception as e:
             logger.error(f"Ölümcül hata: {e}")
             return False
-        finally:
-            if browser:
-                browser.close()
-                logger.info("Tarayıcı kapatıldı")
+        # Finally bloğunu kaldırdık - sync_playwright() context manager browser'ı otomatik kapatır
     
     def run_trafik_with_data(self, teklif_data):
         """Trafik sigortası için scraper çalıştır"""
