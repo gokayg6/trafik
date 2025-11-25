@@ -1,12 +1,25 @@
 import os
+import sys
+import asyncio
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 import time
 import random
 
+# Windows için asyncio event loop policy ayarla (Playwright için)
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 class DogaScraper:
     def __init__(self):
-        load_dotenv()
+        # Load environment variables with UTF-8 encoding
+        try:
+            load_dotenv(encoding='utf-8')
+        except (UnicodeDecodeError, Exception):
+            try:
+                load_dotenv()
+            except Exception:
+                pass
         self.login_url = os.getenv("DOGA_LOGIN_URL", "").strip()
         self.username  = os.getenv("DOGA_USER", "").strip()
         self.password  = os.getenv("DOGA_PASS", "").strip()
@@ -150,7 +163,7 @@ class DogaScraper:
             username_input = self._find_element(page, self.USER_CANDS, "Kullanıcı adı")
             if username_input:
                 username_input.fill(self.username)
-                print("[INFO] Kullanıcı adı girildi.")
+                print("[INFO] Username entered.")
             else:
                 raise Exception("Kullanıcı adı alanı bulunamadı!")
             
@@ -160,7 +173,7 @@ class DogaScraper:
             password_input = self._find_element(page, self.PASS_CANDS, "Şifre")
             if password_input:
                 password_input.fill(self.password)
-                print("[INFO] Şifre girildi.")
+                print("[INFO] Password entered.")
             else:
                 raise Exception("Şifre alanı bulunamadı!")
             
@@ -170,10 +183,10 @@ class DogaScraper:
             login_button = self._find_element(page, self.LOGIN_BTN_CANDS, "Giriş butonu")
             if login_button:
                 login_button.click()
-                print("[INFO] Giriş butonuna tıklandı.")
+                print("[INFO] Login button clicked.")
                 time.sleep(random.uniform(2, 4))  # Giriş işleminin tamamlanmasını bekle
             else:
-                raise Exception("Giriş butonu bulunamadı!")
+                raise Exception("Login button not found!")
             
             # Giriş başarılı mı kontrol et
             page.wait_for_load_state("networkidle", timeout=self.timeout)
@@ -232,7 +245,7 @@ class DogaScraper:
                 print("[SUCCESS] Trafik  teklif süreci tamamlandı!")
                 return True
             else:
-                raise Exception("Trafik elementi bulunamadı! (Selector'ı kontrol edin)")
+                raise Exception("Traffic element not found! (Check the selector)")
                 
         except Exception as e:
             print(f"[ERROR] TRAFİK teklif alınırken hata: {e}")
@@ -240,24 +253,24 @@ class DogaScraper:
     def _enter_trafik_plate_info(self, page, plate_code, plate_no, tescil_seri_kod, tescil_seri_no):
         """Trafik formu için Plaka bilgisi gir"""
         try:
-            print("[INFO] Trafik - Plaka bilgisi giriliyorum...")
+            print("[INFO] Traffic - Entering plate information...")
             
             # -----------------------------------------------------------------
             # !!! DEĞİŞTİR: Buradaki tüm selector'lar (ID'ler) TAHMİNİDİR.
             # Hepsini Trafik sayfasına göre güncellemelisiniz!
             # -----------------------------------------------------------------
             
-            # Plaka İl Kodu gir
-            plate_code_selector = 'input#trafikEkran_txtPlakaIlKodu' 
+            # Plaka İl Codeu gir
+            plate_code_selector = 'input#trafikEkran_txtPlakaIlCodeu' 
             plate_code_input = page.query_selector(plate_code_selector)
             if plate_code_input:
                 page.evaluate(f'document.querySelector("{plate_code_selector}").scrollIntoView();')
                 time.sleep(random.uniform(0.5, 1))
                 plate_code_input.fill(plate_code)
-                print(f"[SUCCESS] Trafik - Plaka İl Kodu girildi: {plate_code}")
+                print(f"[SUCCESS] Trafik - Plaka İl Codeu girildi: {plate_code}")
                 time.sleep(random.uniform(0.5, 1))
             else:
-                raise Exception(f"Trafik - Plaka İl Kodu alanı bulunamadı! (Selector: {plate_code_selector})")
+                raise Exception(f"Trafik - Plaka İl Codeu alanı bulunamadı! (Selector: {plate_code_selector})")
             
             # Plaka No gir
             plate_no_selector = 'input#trafikEkran_txtPlaka' # <<< TAHMİNİ SELECTOR!
@@ -266,7 +279,7 @@ class DogaScraper:
                 page.evaluate(f'document.querySelector("{plate_no_selector}").scrollIntoView();')
                 time.sleep(random.uniform(0.5, 1))
                 plate_no_input.fill(plate_no)
-                print(f"[SUCCESS] Trafik - Plaka No girildi: {plate_no}")
+                print(f"[SUCCESS] Traffic - Plate Number entered: {plate_no}")
                 time.sleep(random.uniform(0.5, 1))
                 
                 page.click('body')
@@ -288,7 +301,7 @@ class DogaScraper:
                 self._display_premium_data(premium_data) 
 
             else:
-                raise Exception(f"Trafik - Plaka No alanı bulunamadı! (Selector: {plate_no_selector})")
+                raise Exception(f"Traffic - Plate Number field not found! (Selector: {plate_no_selector})")
                 
         except Exception as e:
             print(f"[ERROR] Trafik - Plaka bilgisi girilirken hata: {e}")
@@ -302,17 +315,17 @@ class DogaScraper:
             # !!! DEĞİŞTİR: ID'leri Trafik sayfasına göre güncelleyin.
             # -----------------------------------------------------------------
 
-            # Tescil Belge Seri Kod gir
-            seri_kod_selector = 'input#trafikEkran_txtTescilBelgeSeriKod' # <<< TAHMİNİ SELECTOR!
+            # Tescil Belge Seri Code gir
+            seri_kod_selector = 'input#trafikEkran_txtTescilBelgeSeriCode' # <<< TAHMİNİ SELECTOR!
             seri_kod_input = page.query_selector(seri_kod_selector)
             if seri_kod_input:
                 page.evaluate(f'document.querySelector("{seri_kod_selector}").scrollIntoView();')
                 time.sleep(random.uniform(0.5, 1))
                 seri_kod_input.fill(tescil_seri_kod)
-                print(f"[SUCCESS] Trafik - Tescil Belge Seri Kod girildi: {tescil_seri_kod}")
+                print(f"[SUCCESS] Trafik - Tescil Belge Seri Code girildi: {tescil_seri_kod}")
                 time.sleep(random.uniform(0.5, 1))
             else:
-                print("[WARNING] Trafik - Tescil Belge Seri Kod alanı bulunamadı!")
+                print("[WARNING] Trafik - Tescil Belge Seri Code alanı bulunamadı!")
             
             # Tescil Belge Seri No gir
             seri_no_selector = 'input#trafikEkran_txtTescilBelgeSeriNo' # <<< TAHMİNİ SELECTOR!
@@ -389,7 +402,7 @@ class DogaScraper:
     def _enter_tc_no(self, page, tc_no):
         """TC Kimlik No gir ve boşluğa tıkla"""
         try:
-            print("[INFO] TC Kimlik No giriliyorum...")
+            print("[INFO] TC Identity Number being enteredum...")
             
             tc_input = page.query_selector('input#genelEkran_txtS_TcKimlikNo')
             if tc_input:
@@ -398,7 +411,7 @@ class DogaScraper:
                 time.sleep(random.uniform(0.5, 1))
                 
                 tc_input.fill(tc_no)
-                print(f"[SUCCESS] TC Kimlik No girildi: {tc_no}")
+                print(f"[SUCCESS] TC Identity Number entered: {tc_no}")
                 time.sleep(random.uniform(1, 2))
                 
                 # Boşluğa tıkla (sayfa üzerine tıkla)
@@ -464,7 +477,7 @@ class DogaScraper:
             
             if product_questions_link:
                 product_questions_link.click()
-                print("[INFO] Ürün Soruları linkine tıklandı.")
+                print("[INFO] Ürün Soruları link clicked.")
                 page.wait_for_load_state("networkidle", timeout=self.timeout)
                 print("[SUCCESS] Ürün Soruları sayfası yüklendi.")
             else:
@@ -479,18 +492,18 @@ class DogaScraper:
         try:
             print("[INFO] Plaka bilgisi giriliyorum...")
             
-            # Plaka İl Kodu gir
-            plate_code_input = page.query_selector('input#kaskoEkran_txtPlakaIlKodu')
+            # Plaka İl Codeu gir
+            plate_code_input = page.query_selector('input#kaskoEkran_txtPlakaIlCodeu')
             if plate_code_input:
                 # Scroll ederek görünür hale getir
-                page.evaluate('document.querySelector("input#kaskoEkran_txtPlakaIlKodu").scrollIntoView();')
+                page.evaluate('document.querySelector("input#kaskoEkran_txtPlakaIlCodeu").scrollIntoView();')
                 time.sleep(random.uniform(0.5, 1))
                 
                 plate_code_input.fill(plate_code)
-                print(f"[SUCCESS] Plaka İl Kodu girildi: {plate_code}")
+                print(f"[SUCCESS] Plaka İl Codeu girildi: {plate_code}")
                 time.sleep(random.uniform(0.5, 1))
             else:
-                raise Exception("Plaka İl Kodu alanı bulunamadı!")
+                raise Exception("Plaka İl Codeu alanı bulunamadı!")
             
             # Plaka No gir
             plate_no_input = page.query_selector('input#kaskoEkran_txtPlaka')
@@ -708,18 +721,18 @@ class DogaScraper:
         try:
             print("[INFO] Tescil Belge bilgilerini giriliyorum...")
             
-            # Tescil Belge Seri Kod gir
-            seri_kod_input = page.query_selector('input#kaskoEkran_txtTescilBelgeSeriKod')
+            # Tescil Belge Seri Code gir
+            seri_kod_input = page.query_selector('input#kaskoEkran_txtTescilBelgeSeriCode')
             if seri_kod_input:
                 # Scroll ederek görünür hale getir
-                page.evaluate('document.querySelector("input#kaskoEkran_txtTescilBelgeSeriKod").scrollIntoView();')
+                page.evaluate('document.querySelector("input#kaskoEkran_txtTescilBelgeSeriCode").scrollIntoView();')
                 time.sleep(random.uniform(0.5, 1))
                 
                 seri_kod_input.fill(tescil_seri_kod)
-                print(f"[SUCCESS] Tescil Belge Seri Kod girildi: {tescil_seri_kod}")
+                print(f"[SUCCESS] Tescil Belge Seri Code girildi: {tescil_seri_kod}")
                 time.sleep(random.uniform(0.5, 1))
             else:
-                print("[WARNING] Tescil Belge Seri Kod alanı bulunamadı!")
+                print("[WARNING] Tescil Belge Seri Code alanı bulunamadı!")
             
             # Tescil Belge Seri No gir
             seri_no_input = page.query_selector('input#kaskoEkran_txtTescilBelgeSeriNo')
@@ -753,7 +766,7 @@ class DogaScraper:
                 time.sleep(random.uniform(0.5, 1))
                 
                 egm_button.click()
-                print("[INFO] EGM Sorgula butonuna tıklandı.")
+                print("[INFO] EGM Query button clicked.")
                 time.sleep(random.uniform(2, 3))
             else:
                 print("[WARNING] EGM Sorgula butonu bulunamadı!")
@@ -777,14 +790,14 @@ class DogaScraper:
             # TOTP input alanını bul
             totp_selectors = [
                 'input#OtpCode', 'input[name="OtpCode"]',
-                'input[placeholder*="Doğrulama"]', 'input[placeholder*="Kod"]',
+                'input[placeholder*="Doğrulama"]', 'input[placeholder*="Code"]',
                 'input[type="text"]'
             ]
             
             totp_input = self._find_element(page, totp_selectors, "TOTP kodu alanı")
             if totp_input:
                 totp_input.fill(code)
-                print("[INFO] TOTP kodu girildi.")
+                print("[INFO] TOTP code entered.")
             else:
                 raise Exception("TOTP input alanı bulunamadı!")
             
@@ -856,6 +869,60 @@ class DogaScraper:
         except Exception as e:
             print(f"[ERROR] Ekran görüntüsü alınamadı: {e}")
     
+    def run_with_data(self, scraper_type: str, data: dict):
+        """
+        API için scraper çalıştırma metodu
+        scraper_type: "kasko" veya "trafik"
+        data: {
+            "tc_no": "...",
+            "birth_date": "YYYY-MM-DD",
+            "plate_code": "06",
+            "plate_no": "HT203",
+            "tescil_seri_kod": "ER",
+            "tescil_seri_no": "993016"
+        }
+        """
+        browser = None
+        context = None
+        page = None
+        
+        try:
+            from playwright.sync_api import sync_playwright
+            
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=self.headless)
+                context = browser.new_context()
+                page = context.new_page()
+                page.set_default_timeout(self.timeout)
+                
+                # Login
+                page.goto(self.login_url, wait_until="networkidle")
+                self._login(page)
+                self._verify_totp(page)
+                
+                # Scraper tipine göre işlem yap
+                if scraper_type == "kasko":
+                    premium_data = self.get_kasko_quote(page, data)
+                elif scraper_type == "trafik":
+                    premium_data = self.get_trafik_quote(page, data)
+                else:
+                    raise ValueError(f"Geçersiz scraper tipi: {scraper_type}")
+                
+                # Premium verilerini çek
+                premium_data = self._extract_premium_values(page)
+                
+                return {"premium_data": premium_data}
+                
+        except Exception as e:
+            print(f"[ERROR] Scraper çalıştırılırken hata: {e}")
+            raise
+        finally:
+            if page:
+                page.close()
+            if context:
+                context.close()
+            if browser:
+                browser.close()
 
 
 # Kullanım örneği

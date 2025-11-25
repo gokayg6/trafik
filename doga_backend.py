@@ -355,4 +355,8 @@ async def get_trafik_example():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("doga_backend:app", host="0.0.0.0", port=8000, reload=True)
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    port = int(os.getenv("DOGA_BACKEND_PORT", "8001"))
+    uvicorn.run("doga_backend:app", host="0.0.0.0", port=port, reload=True)

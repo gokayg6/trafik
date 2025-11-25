@@ -1,5 +1,7 @@
 import os
+import sys
 import json
+import asyncio
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 import time
@@ -7,9 +9,20 @@ import random
 import pyotp # 'run_bireysel_kasko' fonksiyonundan import'u buraya taşıdım
 import traceback # Hata ayıklama için
 
+# Windows için asyncio event loop policy ayarla (Playwright için)
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 class AtlasScraper:
     def __init__(self):
-        load_dotenv()
+        # Load environment variables with UTF-8 encoding
+        try:
+            load_dotenv(encoding='utf-8')
+        except (UnicodeDecodeError, Exception):
+            try:
+                load_dotenv()
+            except Exception:
+                pass
         self.login_url = os.getenv("ATLAS_LOGIN_URL", "").strip()
         self.username   = os.getenv("ATLAS_USER", "").strip()
         self.password   = os.getenv("ATLAS_PASS", "").strip()
@@ -114,7 +127,7 @@ class AtlasScraper:
             
             # Eğer hala açılmadıysa son bir deneme
             if not dropdown_visible:
-                print("[WARNING] Dropdown açılamadı, yine de devam ediliyor...")
+                print("[WARNING] Dropdown açılamadı, yine de continuing...")
             
             # Dropdown'ın tamamen yüklenmesini bekle
             time.sleep(1.0)
@@ -257,7 +270,7 @@ class AtlasScraper:
                 username_input = self._find_element(page, self.USER_CANDS, "Kullanıcı adı")
                 if username_input:
                     username_input.fill(self.username)
-                    print("[INFO] Kullanıcı adı girildi.")
+                    print("[INFO] Username entered.")
                 else:
                     raise Exception("Kullanıcı adı alanı bulunamadı!")
                 
@@ -266,7 +279,7 @@ class AtlasScraper:
                 password_input = self._find_element(page, self.PASS_CANDS, "Şifre")
                 if password_input:
                     password_input.fill(self.password)
-                    print("[INFO] Şifre girildi.")
+                    print("[INFO] Password entered.")
                 else:
                     raise Exception("Şifre alanı bulunamadı!")
                 
@@ -275,10 +288,10 @@ class AtlasScraper:
                 login_button = self._find_element(page, self.LOGIN_BTN_CANDS, "Giriş butonu")
                 if login_button:
                     login_button.click()
-                    print("[INFO] Giriş butonuna tıklandı.")
+                    print("[INFO] Login button clicked.")
                     time.sleep(random.uniform(2, 4))
                 else:
-                    raise Exception("Giriş butonu bulunamadı!")
+                    raise Exception("Login button not found!")
                 
                 print("[SUCCESS] Giriş başarılı!")
 
@@ -294,9 +307,9 @@ class AtlasScraper:
                 print(f"[INFO] TOTP kodu oluşturuldu: {code}")
                 
                 totp_selectors = [
-                    'input#txtGAKod', 'input[name="txtGAKod"]',
-                    'input#txtGAKod_Container input', 'div#winGAC input[type="text"]',
-                    'input.x-form-text.x-form-field', 'input[placeholder*="Doğrulama"]', 'input[placeholder*="Kod"]',
+                    'input#txtGACode', 'input[name="txtGACode"]',
+                    'input#txtGACode_Container input', 'div#winGAC input[type="text"]',
+                    'input.x-form-text.x-form-field', 'input[placeholder*="Doğrulama"]', 'input[placeholder*="Code"]',
                 ]
                 
                 totp_input = self._find_element(page, totp_selectors, "TOTP kodu alanı")
@@ -306,7 +319,7 @@ class AtlasScraper:
                     totp_input.fill("")
                     time.sleep(random.uniform(0.2, 0.4))
                     totp_input.fill(code)
-                    print("[INFO] TOTP kodu girildi.")
+                    print("[INFO] TOTP code entered.")
                     time.sleep(random.uniform(0.5, 1.0))
                 else:
                     raise Exception("TOTP input alanı bulunamadı!")
@@ -330,7 +343,7 @@ class AtlasScraper:
                     page.wait_for_selector('div#winGAC', state='hidden', timeout=10000)
                     print("[INFO] Google Authenticator popup'ı kapandı.")
                 except:
-                    print("[WARNING] Popup kapanma kontrolü başarısız, devam ediliyor...")
+                    print("[WARNING] Popup kapanma kontrolü başarısız, continuing...")
                 
                 time.sleep(random.uniform(1, 2))
                 print("[SUCCESS] TOTP doğrulaması başarılı!")
@@ -341,19 +354,19 @@ class AtlasScraper:
                 police_menu = page.locator('span:text-is("Poliçe")')
                 police_menu.wait_for(state="visible", timeout=10000)
                 police_menu.click()
-                print("[INFO] 'Poliçe' menüsüne tıklandı.")
+                print("[INFO] 'Poliçe' menu clicked.")
                 time.sleep(random.uniform(0.5, 1.0))
                 
                 oto_sigorta_menu = page.locator('span:text-is("OTO SİGORTALARI")')
                 oto_sigorta_menu.wait_for(state="visible", timeout=5000)
                 oto_sigorta_menu.click()
-                print("[INFO] 'OTO SİGORTALARI' menüsüne tıklandı.")
+                print("[INFO] 'OTO SİGORTALARI' menu clicked.")
                 time.sleep(random.uniform(0.5, 1.0))
                 
                 bireysel_kasko_menu = page.locator('span:text-is("BİREYSEL OTOMOBİL KASKO(OTO)")')
                 bireysel_kasko_menu.wait_for(state="visible", timeout=5000)
                 bireysel_kasko_menu.click()
-                print("[INFO] 'BİREYSEL OTOMOBİL KASKO(OTO)' menüsüne tıklandı.")
+                print("[INFO] 'BİREYSEL OTOMOBİL KASKO(OTO)' menu clicked.")
                 
                 print("[SUCCESS] Bireysel Kasko sayfası yüklendi!")
 
@@ -365,7 +378,7 @@ class AtlasScraper:
                 
                 tckn_selector = "#txtGIFTIdentityNo"
                 kasko_frame.locator(tckn_selector).wait_for(state="visible", timeout=10000)
-                print("[INFO] Iframe bulundu ve TCKN alanı görünür.")
+                print("[INFO] Iframe found ve TCKN alanı görünür.")
 
                 # Form alanlarını doldur
                 if 'tckn' in policy_data:
@@ -375,7 +388,7 @@ class AtlasScraper:
                 
                 if 'plaka' in policy_data:
                     kasko_frame.locator("#txtGIFTPlate").fill(policy_data['plaka'])
-                    print(f"[INFO] Plaka girildi: {policy_data['plaka']}")
+                    print(f"[INFO] Plate entered: {policy_data['plaka']}")
                     time.sleep(random.uniform(0.3, 0.7))
                 
                 if 'tescil_seri' in policy_data:
@@ -404,7 +417,7 @@ class AtlasScraper:
                     kasko_frame.locator("#cphCFB_policyInputStatistics_ctl32").wait_for(state="visible", timeout=15000)
                     print("[SUCCESS] Tramer sorgulaması tamamlandı.")
                 except PWTimeoutError:
-                    print("[WARNING] Tramer sorgulaması zaman aşımına uğradı, devam ediliyor...")
+                    print("[WARNING] Tramer sorgulaması zaman aşımına uğradı, continuing...")
 
                 # 5. DROPDOWN SEÇİMLERİ
                 print("\n" + "="*60)
@@ -451,11 +464,11 @@ class AtlasScraper:
 
                 # 6. MÜŞTERİ ARAMA İŞLEMLERİ - DÜZELTİLMİŞ VERSİYON
                 print("\n" + "="*60)
-                print("[INFO] Müşteri arama işlemleri başlıyor...")
+                print("[INFO] Customer arama işlemleri başlıyor...")
                 print("="*60)
 
                 # Arama trigger'ına tıkla
-                print("[INFO] Müşteri arama trigger'ına tıklanıyor...")
+                print("[INFO] Customer arama trigger'ına tıklanıyor...")
                 search_trigger_selectors = [
                     'img.x-form-trigger.x-form-search-trigger',
                     'img.x-form-search-trigger',
@@ -505,8 +518,8 @@ class AtlasScraper:
                         print("[INFO] 5 saniye bekleniyor...")
                         time.sleep(5)
 
-                        # Müşteri tablosunda TCKN'ye göre arama yap
-                        print("[INFO] Müşteri tablosunda TCKN'ye göre aranıyor...")
+                        # Customer tablosunda TCKN'ye göre arama yap
+                        print("[INFO] Customer tablosunda TCKN'ye göre aranıyor...")
 
                         # TCKN'yi içeren satırı bul
                         tckn = policy_data.get('tckn', '32083591236')
@@ -526,7 +539,7 @@ class AtlasScraper:
 
                                     # Satıra çift tıkla
                                     row.dblclick()
-                                    print("[SUCCESS] Müşteri satırına çift tıklandı")
+                                    print("[SUCCESS] Customer satırına çift tıklandı")
                                     customer_found = True
                                     break
                             except:
@@ -569,7 +582,7 @@ class AtlasScraper:
                                 print(f"[ERROR] Hücre arama hatası: {e}")
 
                         if not customer_found:
-                            print("[ERROR] Müşteri bulunamadı veya tıklanamadı!")
+                            print("[ERROR] Customer bulunamadı veya tıklanamadı!")
                         else:
                             print("[INFO] 5 saniye bekleniyor...")
                             time.sleep(5)
@@ -647,9 +660,9 @@ class AtlasScraper:
                                             if not evet_clicked:
                                                 print("[WARNING] 'Evet' butonu bulunamadı!")
                                         else:
-                                            print("[INFO] Popup görünmüyor, devam ediliyor...")
+                                            print("[INFO] Popup görünmüyor, continuing...")
                                     except:
-                                        print("[INFO] Popup kontrolü başarısız, devam ediliyor...")
+                                        print("[INFO] Popup kontrolü başarısız, continuing...")
                                     
                                     print("[INFO] 15 saniye bekleniyor...")
                                     time.sleep(15)
@@ -800,8 +813,8 @@ class AtlasScraper:
                 print(f"[INFO] TOTP kodu oluşturuldu: {code}")
                 
                 totp_selectors = [
-                    'input#txtGAKod', 'input[name="txtGAKod"]',
-                    'input#txtGAKod_Container input', 'div#winGAC input[type="text"]'
+                    'input#txtGACode', 'input[name="txtGACode"]',
+                    'input#txtGACode_Container input', 'div#winGAC input[type="text"]'
                 ]
                 totp_input = self._find_element(page, totp_selectors, "TOTP kodu alanı")
                 totp_input.fill(code)
@@ -818,7 +831,7 @@ class AtlasScraper:
                     page.wait_for_selector('div#winGAC', state='hidden', timeout=10000)
                     print("[INFO] Google Authenticator popup'ı kapandı.")
                 except:
-                    print("[WARNING] Popup kapanma kontrolü başarısız, devam ediliyor...")
+                    print("[WARNING] Popup kapanma kontrolü başarısız, continuing...")
                 
                 time.sleep(random.uniform(1, 2))
                 print("[SUCCESS] TOTP doğrulaması başarılı!")
@@ -829,20 +842,20 @@ class AtlasScraper:
                 police_menu = page.locator('span:text-is("Poliçe")')
                 police_menu.wait_for(state="visible", timeout=10000)
                 police_menu.click()
-                print("[INFO] 'Poliçe' menüsüne tıklandı.")
+                print("[INFO] 'Poliçe' menu clicked.")
                 time.sleep(random.uniform(0.5, 1.0))
                 
                 oto_sigorta_menu = page.locator('span:text-is("OTO SİGORTALARI")')
                 oto_sigorta_menu.wait_for(state="visible", timeout=5000)
                 oto_sigorta_menu.click()
-                print("[INFO] 'OTO SİGORTALARI' menüsüne tıklandı.")
+                print("[INFO] 'OTO SİGORTALARI' menu clicked.")
                 time.sleep(random.uniform(0.5, 1.0))
                 
                 # --- DEĞİŞİKLİK BURADA ---
                 dar_kasko_menu = page.locator('span:text-is("IMM ARTI KORUMA DAR KASKO")')
                 dar_kasko_menu.wait_for(state="visible", timeout=5000)
                 dar_kasko_menu.click()
-                print("[INFO] 'IMM ARTI KORUMA DAR KASKO' menüsüne tıklandı.")
+                print("[INFO] 'IMM ARTI KORUMA DAR KASKO' menu clicked.")
                 # --- DEĞİŞİKLİK SONU ---
                 
                 print("[SUCCESS] IMM Dar Kasko sayfası yüklendi!")
@@ -855,7 +868,7 @@ class AtlasScraper:
 
                 tckn_selector = "#txtGIFTIdentityNo"
                 kasko_frame.locator(tckn_selector).wait_for(state="visible", timeout=10000)
-                print("[INFO] Iframe bulundu ve TCKN alanı görünür.")
+                print("[INFO] Iframe found ve TCKN alanı görünür.")
 
 
                 if 'tckn' in policy_data:
@@ -865,7 +878,7 @@ class AtlasScraper:
                 
                 if 'plaka' in policy_data:
                     kasko_frame.locator("#txtGIFTPlate").fill(policy_data['plaka'])
-                    print(f"[INFO] Plaka girildi: {policy_data['plaka']}")
+                    print(f"[INFO] Plate entered: {policy_data['plaka']}")
                     time.sleep(random.uniform(0.3, 0.7))
                 
                 if 'tescil_seri' in policy_data:
@@ -894,7 +907,7 @@ class AtlasScraper:
                     kasko_frame.locator("#cphCFB_policyInputStatistics_ctl06").wait_for(state="visible", timeout=15000)
                     print("[SUCCESS] Tramer sorgulaması tamamlandı (Kullanım Tipi alanı görünür).")
                 except PWTimeoutError:
-                    print("[WARNING] Tramer sorgulaması zaman aşımına uğradı, devam ediliyor...")
+                    print("[WARNING] Tramer sorgulaması zaman aşımına uğradı, continuing...")
         
                 # 5. DROPDOWN SEÇİMLERİ (IMM KASKO İÇİN)
                 print("\n" + "="*60)
@@ -943,7 +956,7 @@ class AtlasScraper:
                     print("\n⚠️ [WARNING] Bazı dropdown seçimleri başarısız oldu, ancak işleme devam edildi.")
         
                 # 6. SİGORTALIDAN TAŞI BUTONUNA TIKLA
-                print("\n[INFO] 'Sigortalıdan Taşı' linkine tıklanıyor...")
+                print("\n[INFO] 'Sigortalıdan Taşı' link being clicked...")
 
                 try:
                     # En sağlam yöntem metin ile bulmaktır:
@@ -952,7 +965,7 @@ class AtlasScraper:
                     tasima_linki.wait_for(state="visible", timeout=5000)
                     tasima_linki.click()
 
-                    print("[SUCCESS] 'Sigortalıdan Taşı' linkine tıklandı.")
+                    print("[SUCCESS] 'Sigortalıdan Taşı' link clicked.")
                     print("[INFO] Bilgilerin dolması için 3 saniye bekleniyor...")
                     time.sleep(3) # Bilgilerin formun diğer kısımlarına kopyalanması için bekle
 
@@ -1158,8 +1171,8 @@ class AtlasScraper:
                 print(f"[INFO] TOTP kodu oluşturuldu: {code}")
                 
                 totp_selectors = [
-                    'input#txtGAKod', 'input[name="txtGAKod"]',
-                    'input#txtGAKod_Container input', 'div#winGAC input[type="text"]'
+                    'input#txtGACode', 'input[name="txtGACode"]',
+                    'input#txtGACode_Container input', 'div#winGAC input[type="text"]'
                 ]
                 totp_input = self._find_element(page, totp_selectors, "TOTP kodu alanı")
                 totp_input.fill(code)
@@ -1176,7 +1189,7 @@ class AtlasScraper:
                     page.wait_for_selector('div#winGAC', state='hidden', timeout=10000)
                     print("[INFO] Google Authenticator popup'ı kapandı.")
                 except:
-                    print("[WARNING] Popup kapanma kontrolü başarısız, devam ediliyor...")
+                    print("[WARNING] Popup kapanma kontrolü başarısız, continuing...")
                 
                 time.sleep(random.uniform(1, 2))
                 print("[SUCCESS] TOTP doğrulaması başarılı!")
@@ -1187,13 +1200,13 @@ class AtlasScraper:
                 police_menu = page.locator('span:text-is("Poliçe")')
                 police_menu.wait_for(state="visible", timeout=10000)
                 police_menu.click()
-                print("[INFO] 'Poliçe' menüsüne tıklandı.")
+                print("[INFO] 'Poliçe' menu clicked.")
                 time.sleep(random.uniform(0.5, 1.0))
                 
                 oto_sigorta_menu = page.locator('span:text-is("OTO SİGORTALARI")')
                 oto_sigorta_menu.wait_for(state="visible", timeout=5000)
                 oto_sigorta_menu.click()
-                print("[INFO] 'OTO SİGORTALARI' menüsüne tıklandı.")
+                print("[INFO] 'OTO SİGORTALARI' menu clicked.")
                 time.sleep(random.uniform(0.5, 1.0))
                 
                 # --- YENİ DEĞİŞİKLİK BURADA ---
@@ -1203,7 +1216,7 @@ class AtlasScraper:
                 
                 ticari_kasko_menu.wait_for(state="visible", timeout=5000)
                 ticari_kasko_menu.click()
-                print("[INFO] 'TİCARİ KASKO (TKP)' menüsüne tıklandı.")
+                print("[INFO] 'TİCARİ KASKO (TKP)' menu clicked.")
                 # --- DEĞİŞİKLİK SONU ---
                 
                 print("[SUCCESS] Ticari Kasko (TKP) sayfası yüklendi!")
@@ -1216,7 +1229,7 @@ class AtlasScraper:
                 
                 tckn_selector = "#txtGIFTIdentityNo"
                 kasko_frame.locator(tckn_selector).wait_for(state="visible", timeout=10000)
-                print("[INFO] Iframe bulundu ve TCKN alanı görünür.")
+                print("[INFO] Iframe found ve TCKN alanı görünür.")
 
                 # Form alanlarını doldur
                 if 'tckn' in policy_data:
@@ -1226,7 +1239,7 @@ class AtlasScraper:
                 
                 if 'plaka' in policy_data:
                     kasko_frame.locator("#txtGIFTPlate").fill(policy_data['plaka'])
-                    print(f"[INFO] Plaka girildi: {policy_data['plaka']}")
+                    print(f"[INFO] Plate entered: {policy_data['plaka']}")
                     time.sleep(random.uniform(0.3, 0.7))
                 
                 if 'tescil_seri' in policy_data:

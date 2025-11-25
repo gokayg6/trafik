@@ -4,7 +4,14 @@ from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
 def main():
-    load_dotenv()
+    # Load environment variables with UTF-8 encoding
+    try:
+        load_dotenv(encoding='utf-8')
+    except (UnicodeDecodeError, Exception):
+        try:
+            load_dotenv()
+        except Exception:
+            pass
     url = os.getenv("KORU_LOGIN_URL", "").strip()
     headless = os.getenv("HEADLESS", "false").lower() == "true"
 

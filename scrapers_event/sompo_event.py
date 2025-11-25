@@ -6,17 +6,37 @@ import sys
 import json
 import os
 import traceback
+import asyncio
+
+# Windows için asyncio event loop policy ayarla (Playwright için)
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # --- AYARLAR ---
 COOKIE_DIR = "cookies"
 STORAGE_STATE_FILE_PATH = os.path.join(COOKIE_DIR, "sompo_storage_state.json")
 
-# GİRİŞ BİLGİLERİ
-YOUR_USERNAME = "BULUT1"
-YOUR_PASSWORD = "EEsigorta.2828"
+# GİRİŞ BİLGİLERİ - .env'den oku
+import os
+from dotenv import load_dotenv
+# Load environment variables with UTF-8 encoding
+try:
+    load_dotenv(encoding='utf-8')
+except (UnicodeDecodeError, Exception):
+    try:
+        load_dotenv()
+    except Exception:
+        pass
+
+YOUR_USERNAME = os.getenv("SOMPO_USER", "").strip()
+YOUR_PASSWORD = os.getenv("SOMPO_PASS", "EE28sigorta.").strip()  # Default: EE28sigorta.
 
 # 2FA (TOTP) BİLGİLERİ
-SECRET_KEY = "DD3JCJB7E7H25MB6BZ5IKXLKLJBZDQAO"
+SECRET_KEY = os.getenv("SOMPO_TOTP_SECRET", "").strip()
+
+# Validasyon
+if not YOUR_USERNAME or not YOUR_PASSWORD or not SECRET_KEY:
+    raise RuntimeError("SOMPO_USER, SOMPO_PASS ve SOMPO_TOTP_SECRET .env dosyasında tanımlı olmalıdır!")
 LOGIN_BUTTON_SELECTOR = 'button[type="submit"]'
 TOTP_CONTAINER_SELECTOR = 'div.p-inputotp'
 
@@ -43,10 +63,10 @@ def generate_totp_code(secret_key):
     try:
         totp = pyotp.TOTP(secret_key)
         current_code = totp.now()
-        print(f"[BİLGİ] Üretilen TOTP Kodu: {current_code}")
+        print(f"[BİLGİ] Generated TOTP Code: {current_code}")
         return current_code
     except Exception as e:
-        print(f"[HATA] TOTP kodu üretilemedi: {e}", file=sys.stderr)
+        print(f"[HATA] Failed to generate TOTP code: {e}", file=sys.stderr)
         return None
 
 def save_storage_state(page):
@@ -55,9 +75,9 @@ def save_storage_state(page):
         if not os.path.exists(COOKIE_DIR):
             os.makedirs(COOKIE_DIR)
         page.context.storage_state(path=STORAGE_STATE_FILE_PATH)
-        print(f"\n[BİLGİ] Oturum durumu başarıyla '{STORAGE_STATE_FILE_PATH}' dosyasına kaydedildi.")
+        print(f"\n[BİLGİ] Session state successfully '{STORAGE_STATE_FILE_PATH}' saved to file.")
     except Exception as e:
-        print(f"\n[HATA] Oturum durumu kaydı başarısız oldu: {e}", file=sys.stderr)
+        print(f"\n[HATA] Failed to save session state: {e}", file=sys.stderr)
 
 def login_and_save(page):
     """Kullanıcı adı/şifre ve TOTP ile giriş yapar ve oturumu kaydeder."""
@@ -67,7 +87,7 @@ def login_and_save(page):
     password_selector = 'input[type="password"]'
     page.fill(username_selector, YOUR_USERNAME)
     page.fill(password_selector, YOUR_PASSWORD)
-    print("Kullanıcı adı ve şifre girildi.")
+    print("Username and password entered.")
     page.click(LOGIN_BUTTON_SELECTOR)
     print("Giriş butonu tıklandı, TOTP ekranı bekleniyor...")
     totp_code = generate_totp_code(SECRET_KEY)
@@ -80,9 +100,9 @@ def login_and_save(page):
     for i in range(6):
         digit = totp_code[i]
         input_fields.nth(i).fill(digit)
-    print(f"TOTP Kodu ({totp_code}) hanelere ayrılarak girildi.")
+    print(f"TOTP Code ({totp_code}) hanelere ayrılarak girildi.")
     time.sleep(0.5)
-    print("TOTP kodu girildi. Otomatik doğrulama ve Dashboard bekleniyor...")
+    print("TOTP code entered. Otomatik doğrulama ve Dashboard bekleniyor...")
     page.wait_for_url(lambda url: url != LOGIN_URL, timeout=15000)
     print("Giriş başarılı! Dashboard sayfasına geçildi.")
     save_storage_state(page)
@@ -149,12 +169,12 @@ def fill_tckn_field(page, tckn_value):
             # Doğrulama
             current_value = input_box.input_value()
             if current_value == tckn_value:
-                print(f"[BAŞARILI] TCKN '{tckn_value}' başarıyla yazıldı.")
+                print(f"[BAŞARILI] TCKN '{tckn_value}' başarıyla written.")
                 page.keyboard.press("Tab")
                 time.sleep(0.5)
                 return True
             else:
-                print(f"[UYARI] TCKN yazıldı ama doğrulanamadı. Beklenen: {tckn_value}, Bulunan: {current_value}")
+                print(f"[UYARI] TCKN written ama doğrulanamadı. Beklenen: {tckn_value}, Bulunan: {current_value}")
 
         except PlaywrightTimeoutError:
             continue
@@ -269,7 +289,7 @@ def process_trafik_sigortasi(page, data):
         plate_input.click()
         plate_input.fill(kalan_plaka)
         time.sleep(0.3)
-        print(f"[BAŞARILI] Plaka girildi: {kalan_plaka}")
+        print(f"[BAŞARILI] Plate entered: {kalan_plaka}")
         
         # 4️⃣ Ruhsat Seri No girişi
         print(f"\n[İŞLEM] Ruhsat seri no giriliyor: {data['ruhsat_seri_no']}")
@@ -310,7 +330,7 @@ def process_trafik_sigortasi(page, data):
         print("\n[İŞLEM] EGM sorgusu yapılıyor...")
         egm_search_button = page.locator("#btnSearchEgm")
         egm_search_button.click()
-        print("[BAŞARILI] EGM Sorgula butonuna tıklandı.")
+        print("[BAŞARILI] EGM Query button clicked.")
         
         print("[BİLGİ] EGM sorgu sonucu bekleniyor (5 saniye)...")
         time.sleep(10)
@@ -384,7 +404,7 @@ def process_trafik_sigortasi(page, data):
             time.sleep(0.2)
             
             vehicle_model_input.type(data['arac_modeli'], delay=100)
-            print(f"[BAŞARILI] Araç modeli yazıldı: {data['arac_modeli']}")
+            print(f"[BAŞARILI] Araç modeli written: {data['arac_modeli']}")
             
             time.sleep(2)
             print("[BİLGİ] Autocomplete listesi bekleniyor...")
@@ -610,7 +630,7 @@ def process_kasko_sigortasi(page, data):
         plate_input.click()
         plate_input.fill(kalan_plaka)
         time.sleep(0.3)
-        print(f"[BAŞARILI] Plaka girildi: {kalan_plaka}")
+        print(f"[BAŞARILI] Plate entered: {kalan_plaka}")
         
         # 4️⃣ Ruhsat Seri No girişi
         print(f"\n[İŞLEM] Ruhsat seri no giriliyor: {data['ruhsat_seri_no']}")
@@ -649,7 +669,7 @@ def process_kasko_sigortasi(page, data):
         print("\n[İŞLEM] EGM sorgusu yapılıyor...")
         egm_search_button = page.locator("#btnSearchEgm")
         egm_search_button.click()
-        print("[BAŞARILI] EGM Sorgula butonuna tıklandı.")
+        print("[BAŞARILI] EGM Query button clicked.")
         
         print("[BİLGİ] EGM sorgu sonucu bekleniyor (5 saniye)...")
         time.sleep(5)
@@ -673,7 +693,7 @@ def process_kasko_sigortasi(page, data):
                 time.sleep(0.2)
                 
                 vehicle_model_input.type(data['arac_modeli'], delay=100)
-                print(f"[BAŞARILI] Araç modeli yazıldı: {data['arac_modeli']}")
+                print(f"[BAŞARILI] Araç modeli written: {data['arac_modeli']}")
                 
                 time.sleep(2)
                 print("[BİLGİ] Autocomplete listesi bekleniyor...")
@@ -713,7 +733,7 @@ def process_kasko_sigortasi(page, data):
                 time.sleep(0.2)
                 
                 job_input.type(data['meslek'], delay=100)
-                print(f"[BAŞARILI] Meslek yazıldı: {data['meslek']}")
+                print(f"[BAŞARILI] Meslek written: {data['meslek']}")
                 
                 time.sleep(2)
                 print("[BİLGİ] Meslek autocomplete listesi bekleniyor...")
@@ -974,7 +994,7 @@ def process_saglik_sigortasi(page, data):
         saglik_menu = page.locator('a.genel.aMenu:has-text("Sağlık")')
         saglik_menu.wait_for(state="visible", timeout=10000)
         saglik_menu.click()
-        print("[BAŞARILI] Sağlık menüsüne tıklandı.")
+        print("[BAŞARILI] Sağlık menu clicked.")
         
         time.sleep(2)
         
@@ -1165,7 +1185,7 @@ def process_saglik_sigortasi(page, data):
                     continue
             
             if not devam_clicked:
-                print("[BİLGİ] Devam butonu bulunamadı, normal akışa devam ediliyor...")
+                print("[BİLGİ] Devam butonu bulunamadı, normal akışa continuing...")
                 
         except Exception as e:
             print(f"[UYARI] Devam butonu işlenirken hata: {e}")
@@ -1444,10 +1464,10 @@ def process_dask_sigortasi(page, data):
                 time.sleep(2)
                 
             else:
-                print("[BİLGİ] Telefon popup'ı görünmedi, devam ediliyor...")
+                print("[BİLGİ] Telefon popup'ı görünmedi, continuing...")
                 
         except PlaywrightTimeoutError:
-            print("[UYARI] Telefon popup'ı timeout (görünmedi), devam ediliyor...")
+            print("[UYARI] Telefon popup'ı timeout (görünmedi), continuing...")
         except Exception as e:
             print(f"[UYARI] Telefon popup'ı işlenirken hata: {e}")
         
@@ -1518,7 +1538,7 @@ def process_dask_sigortasi(page, data):
 def process_dask_yeni_police(page, data):
     """
     DASK (Zorunlu Deprem Sigortası) için YENİ POLİÇE sürecini tamamlar.
-    Bu fonksiyon DASK Adres Kodu (UAVT) kullanır.
+    Bu fonksiyon DASK Adres Codeu (UAVT) kullanır.
     """
     print("\n" + "="*60)
     print("DASK SİGORTASI (YENİ POLİÇE) İŞLEMİ BAŞLATILIYOR")
@@ -1573,7 +1593,7 @@ def process_dask_yeni_police(page, data):
         time.sleep(3)
 
         # 4️⃣ DASK ADRES KODU (UAVT) GİRİŞİ
-        print(f"\n[İŞLEM] DASK Adres Kodu (UAVT) giriliyor: {data['dask_adres_kodu']}")
+        print(f"\n[İŞLEM] DASK Adres Codeu (UAVT) giriliyor: {data['dask_adres_kodu']}")
         
         try:
             adres_kodu_input = page.locator("#txtUAVTAddressNo")
@@ -1585,10 +1605,10 @@ def process_dask_yeni_police(page, data):
             adres_kodu_input.click()
             time.sleep(0.3)
             adres_kodu_input.fill(data['dask_adres_kodu'])
-            print(f"[BAŞARILI] DASK Adres Kodu girildi: {data['dask_adres_kodu']}")
+            print(f"[BAŞARILI] DASK Adres Codeu girildi: {data['dask_adres_kodu']}")
         except Exception as e:
-            print(f"[HATA] DASK Adres Kodu girişinde hata: {e}")
-            return {'basarili': False, 'hata': f'DASK Adres Kodu: {e}'}
+            print(f"[HATA] DASK Adres Codeu girişinde hata: {e}")
+            return {'basarili': False, 'hata': f'DASK Adres Codeu: {e}'}
         
         time.sleep(0.5)
 
@@ -1719,10 +1739,10 @@ def process_dask_yeni_police(page, data):
                 time.sleep(2)
                 
             else:
-                print("[BİLGİ] Telefon popup'ı görünmedi, devam ediliyor...")
+                print("[BİLGİ] Telefon popup'ı görünmedi, continuing...")
                 
         except PlaywrightTimeoutError:
-            print("[UYARI] Telefon popup'ı timeout (görünmedi), devam ediliyor...")
+            print("[UYARI] Telefon popup'ı timeout (görünmedi), continuing...")
         except Exception as e:
             print(f"[UYARI] Telefon popup'ı işlenirken hata: {e}")
         
@@ -1754,7 +1774,7 @@ def process_dask_yeni_police(page, data):
                 print("[UYARI] Brüt prim bulunamadı")
             
             teklif_bilgileri['dask_adres_kodu'] = data.get('dask_adres_kodu', 'Bilinmiyor')
-            print(f"[BİLGİ] DASK Adres Kodu: {teklif_bilgileri['dask_adres_kodu']}")
+            print(f"[BİLGİ] DASK Adres Codeu: {teklif_bilgileri['dask_adres_kodu']}")
             
             teklif_bilgileri['tckn'] = data.get('tckn', 'Bilinmiyor')
             print(f"[BİLGİ] TC Kimlik No: {teklif_bilgileri['tckn']}")
@@ -1767,7 +1787,7 @@ def process_dask_yeni_police(page, data):
         print("="*60)
         print(f"📄 Teklif No: {teklif_bilgileri.get('teklif_no', 'Bulunamadı')}")
         print(f"💰 Brüt Prim: {teklif_bilgileri.get('brut_prim', 'Bulunamadı')}")
-        print(f"📍 DASK Adres Kodu: {teklif_bilgileri.get('dask_adres_kodu', 'Bilinmiyor')}")
+        print(f"📍 DASK Adres Codeu: {teklif_bilgileri.get('dask_adres_kodu', 'Bilinmiyor')}")
         print(f"👤 TC No: {teklif_bilgileri.get('tckn', 'Bilinmiyor')}")
         print("="*60)
         

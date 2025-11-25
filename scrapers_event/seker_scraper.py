@@ -3,14 +3,27 @@
 # Not: TOTP/Doğrula YOK. Sen manuel girip tıklıyorsun.
 
 import os
+import sys
+import asyncio
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 import time
 import random
 
+# Windows için asyncio event loop policy ayarla (Playwright için)
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 class SekerScraper:
     def __init__(self):
-        load_dotenv()
+        # Load environment variables with UTF-8 encoding
+        try:
+            load_dotenv(encoding='utf-8')
+        except (UnicodeDecodeError, Exception):
+            try:
+                load_dotenv()
+            except Exception:
+                pass
         self.login_url = os.getenv("SEKER_LOGIN_URL", "").strip()
         self.username  = os.getenv("SEKER_USER", "").strip()
         self.password  = os.getenv("SEKER_PASS", "").strip()
@@ -90,7 +103,7 @@ class SekerScraper:
                 frame_element = page.frame(url='NonLife/Policy/ViewPolicy.aspx')
             
             if frame_element:
-                print("[OK] Iframe'e geçiş yapıldı")
+                print("[OK] Switched to iframe")
                 return frame_element
             else:
                 print("[ERROR] Iframe bulunamadı")
@@ -315,7 +328,7 @@ class SekerScraper:
             teklif_police_link = self._first_visible(page, teklif_police_selectors)
             if teklif_police_link:
                 teklif_police_link.click()
-                print("[OK] Teklif/Poliçe menüsüne tıklandı")
+                print("[OK] Teklif/Poliçe menu clicked")
                 time.sleep(5)
             else:
                 print("[ERROR] Teklif/Poliçe menüsü bulunamadı")
@@ -333,7 +346,7 @@ class SekerScraper:
             kasko_link = self._first_visible(page, kasko_selectors)
             if kasko_link:
                 kasko_link.click()
-                print("[OK] Kasko menüsüne tıklandı")
+                print("[OK] Kasko menu clicked")
                 time.sleep(5)
             else:
                 print("[ERROR] Kasko menüsü bulunamadı")
@@ -341,7 +354,7 @@ class SekerScraper:
                 return False
 
             # 3. ADIM: Kasko ürün linkine tıkla
-            print("\n--- 3. ADIM: Kasko ürün linkine tıklanıyor ---")
+            print("\n--- 3. ADIM: Kasko ürün link being clicked ---")
             kasko_urun_selectors = [
                 'a.x-tree-node-anchor[href*="SavePolicy"]',
                 'a:has-text("Kasko")',
@@ -351,7 +364,7 @@ class SekerScraper:
             kasko_urun_link = self._first_visible(page, kasko_urun_selectors)
             if kasko_urun_link:
                 kasko_urun_link.click()
-                print("[OK] Kasko ürün linkine tıklandı")
+                print("[OK] Kasko ürün link clicked")
 
                 # 4. ADIM: 10 saniye bekle (yeni iframe içeriği yüklenmesi için)
                 print("[INFO] Sayfanın yüklenmesi için 10 saniye bekleniyor...")
@@ -385,7 +398,7 @@ class SekerScraper:
             if tc_input:
                 if tckn:
                     tc_input.fill(tckn)
-                    print(f"[OK] TC Kimlik No yazıldı: {tckn}")
+                    print(f"[OK] TC Kimlik No written: {tckn}")
                 else:
                     print("[WARN] TCKN bilgisi verilmedi, manuel giriş gerekebilir")
             else:
@@ -407,7 +420,7 @@ class SekerScraper:
             if plaka_input:
                 if plaka:
                     plaka_input.fill(plaka)
-                    print(f"[OK] Plaka yazıldı: {plaka}")
+                    print(f"[OK] Plaka written: {plaka}")
                 else:
                     print("[WARN] Plaka bilgisi verilmedi, manuel giriş gerekebilir")
             else:
@@ -430,7 +443,7 @@ class SekerScraper:
             sorgula_btn = self._first_visible(frame, sorgula_selectors)
             if sorgula_btn:
                 sorgula_btn.click()
-                print("[OK] Sorgula butonuna tıklandı")
+                print("[OK] Query button clicked")
                 print("[INFO] Sorgu sonucu bekleniyor... (10 saniye)")
                 time.sleep(15)
             else:
@@ -448,7 +461,7 @@ class SekerScraper:
                     kullanim_tarzi
                 )
                 if not success:
-                    print("[WARN] Kullanım Tarzı dropdown seçimi başarısız, devam ediliyor...")
+                    print("[WARN] Kullanım Tarzı dropdown seçimi başarısız, continuing...")
                     self._take_screenshot(page, "kasko_kullanim_tarzi_dropdown_fail")
             else:
                 print("[WARN] Kullanım Tarzı bilgisi verilmedi, manuel giriş gerekebilir")
@@ -517,7 +530,7 @@ class SekerScraper:
                     time.sleep(1)
                     
                     telefon_input.type(random_telefon, delay=400)
-                    print(f"[OK] Telefon numarası yazıldı: {random_telefon}")
+                    print(f"[OK] Telefon numarası written: {random_telefon}")
                     
                     telefon_input.blur()
                     time.sleep(2)
@@ -591,7 +604,7 @@ class SekerScraper:
                     print("[ERROR] Evet butonu bulunamadı")
                     self._take_screenshot(page, "kasko_evet_button_not_found")
             else:
-                print("[INFO] Uyarı dialog bulunamadı, devam ediliyor...")
+                print("[INFO] Uyarı dialog bulunamadı, continuing...")
                 time.sleep(3)
 
             # 12. ADIM: Fiyat tablosundan verileri al
@@ -663,7 +676,7 @@ class SekerScraper:
             teklif_police_link = self._first_visible(page, teklif_police_selectors)
             if teklif_police_link:
                 teklif_police_link.click()
-                print("[OK] Teklif/Poliçe menüsüne tıklandı")
+                print("[OK] Teklif/Poliçe menu clicked")
                 time.sleep(5)
             else:
                 print("[ERROR] Teklif/Poliçe menüsü bulunamadı")
@@ -681,7 +694,7 @@ class SekerScraper:
             trafik_link = self._first_visible(page, trafik_selectors)
             if trafik_link:
                 trafik_link.click()
-                print("[OK] Trafik menüsüne tıklandı")
+                print("[OK] Trafik menu clicked")
                 time.sleep(5)
             else:
                 print("[ERROR] Trafik menüsü bulunamadı")
@@ -689,7 +702,7 @@ class SekerScraper:
                 return False
 
             # 3. ADIM: "310 TRAFİK" linkine tıkla (iframe içinde)
-            print("\n--- 3. ADIM: 310 TRAFİK linkine tıklanıyor ---")
+            print("\n--- 3. ADIM: 310 TRAFİK link being clicked ---")
             trafik_310_selectors = [
                 'a.x-tree-node-anchor[href*="/NonLife/Policy/SavePolicy.aspx?APP_MP=310"]',
                 'a:has-text("310 TRAFİK")',
@@ -699,7 +712,7 @@ class SekerScraper:
             trafik_310_link = self._first_visible(page, trafik_310_selectors)
             if trafik_310_link:
                 trafik_310_link.click()
-                print("[OK] 310 TRAFİK linkine tıklandı")
+                print("[OK] 310 TRAFİK link clicked")
 
                 # 4. ADIM: 10 saniye bekle (yeni iframe içeriği yüklenmesi için)
                 print("[INFO] Sayfanın yüklenmesi için 10 saniye bekleniyor...")
@@ -732,7 +745,7 @@ class SekerScraper:
             if tc_input:
                 if tckn:
                     tc_input.fill(tckn)
-                    print(f"[OK] TC Kimlik No yazıldı: {tckn}")
+                    print(f"[OK] TC Kimlik No written: {tckn}")
                 else:
                     print("[WARN] TCKN bilgisi verilmedi, manuel giriş gerekebilir")
             else:
@@ -752,7 +765,7 @@ class SekerScraper:
             if plaka_input:
                 if plaka:
                     plaka_input.fill(plaka)
-                    print(f"[OK] Plaka yazıldı: {plaka}")
+                    print(f"[OK] Plaka written: {plaka}")
                 else:
                     print("[WARN] Plaka bilgisi verilmedi, manuel giriş gerekebilir")
             else:
@@ -772,7 +785,7 @@ class SekerScraper:
             if tescil_seri_input:
                 if tescil_seri:
                     tescil_seri_input.fill(tescil_seri)
-                    print(f"[OK] Tescil Seri yazıldı: {tescil_seri}")
+                    print(f"[OK] Tescil Seri written: {tescil_seri}")
                 else:
                     print("[WARN] Tescil Seri bilgisi bulunamadı, manuel giriş gerekebilir")
             else:
@@ -792,7 +805,7 @@ class SekerScraper:
             if tescil_no_input:
                 if tescil_no:
                     tescil_no_input.fill(tescil_no)
-                    print(f"[OK] Tescil No yazıldı: {tescil_no}")
+                    print(f"[OK] Tescil No written: {tescil_no}")
                 else:
                     print("[WARN] Tescil No bilgisi bulunamadı, manuel giriş gerekebilir")
             else:
@@ -814,7 +827,7 @@ class SekerScraper:
             sorgula_btn = self._first_visible(frame, sorgula_selectors)
             if sorgula_btn:
                 sorgula_btn.click()
-                print("[OK] Sorgula butonuna tıklandı")
+                print("[OK] Query button clicked")
                 
                 # 7. ADIM: Sorgu sonucunun gelmesi için 10 sn bekle
                 print("[INFO] Sorgu sonucu bekleniyor... (10 saniye)")
@@ -835,7 +848,7 @@ class SekerScraper:
                     kullanim_tarzi
                 )
                 if not success:
-                    print("[WARN] Kullanım Tarzı dropdown seçimi başarısız, devam ediliyor...")
+                    print("[WARN] Kullanım Tarzı dropdown seçimi başarısız, continuing...")
                     self._take_screenshot(page, "kullanim_tarzi_dropdown_fail")
             else:
                 print("[WARN] Kullanım Tarzı bilgisi verilmedi, manuel giriş gerekebilir")
@@ -885,7 +898,7 @@ class SekerScraper:
                     
                     # Yavaş yazma
                     telefon_input.type(random_telefon, delay=400)
-                    print(f"[OK] Telefon numarası yazıldı: {random_telefon}")
+                    print(f"[OK] Telefon numarası written: {random_telefon}")
                     
                     # Blur event tetikle (form validation için)
                     telefon_input.blur()
@@ -943,7 +956,7 @@ class SekerScraper:
                     print("[ERROR] Evet butonu bulunamadı")
                     self._take_screenshot(page, "evet_button_not_found")
             else:
-                print("[INFO] Uyarı dialog bulunamadı, devam ediliyor...")
+                print("[INFO] Uyarı dialog bulunamadı, continuing...")
                 time.sleep(3)
 
             # 14. ADIM: Fiyat tablosundan verileri al
@@ -1149,7 +1162,7 @@ class SekerScraper:
             teklif_police_link = self._first_visible(page, teklif_police_selectors)
             if teklif_police_link:
                 teklif_police_link.click()
-                print("[OK] Teklif/Poliçe menüsüne tıklandı")
+                print("[OK] Teklif/Poliçe menu clicked")
                 time.sleep(5)
             else:
                 print("[ERROR] Teklif/Poliçe menüsü bulunamadı")
@@ -1167,7 +1180,7 @@ class SekerScraper:
             saglik_link = self._first_visible(page, saglik_selectors)
             if saglik_link:
                 saglik_link.click()
-                print("[OK] Sağlık menüsüne tıklandı")
+                print("[OK] Sağlık menu clicked")
                 time.sleep(5)
             else:
                 print("[ERROR] Sağlık menüsü bulunamadı")
@@ -1175,7 +1188,7 @@ class SekerScraper:
                 return False
                 
             # 3. ADIM: "Seyahat Sağlık" ürün linkine tıkla (Örn: "340 SEYAHAT SAĞLIK")
-            print("\n--- 3. ADIM: Seyahat Sağlık ürün linkine tıklanıyor ---")
+            print("\n--- 3. ADIM: Seyahat Sağlık ürün link being clicked ---")
             seyahat_urun_selectors = [
                 'a[href="/NonLife/Policy/SavePolicy.aspx?APP_MP=298"]',
                 'a:has-text("298 SEYAHAT SAĞLIK")',
@@ -1186,7 +1199,7 @@ class SekerScraper:
             seyahat_urun_link = self._first_visible(page, seyahat_urun_selectors)
             if seyahat_urun_link:
                 seyahat_urun_link.click()
-                print("[OK] Seyahat Sağlık ürün linkine tıklandı")
+                print("[OK] Seyahat Sağlık ürün link clicked")
 
                 # 4. ADIM: 10 saniye bekle (yeni iframe içeriği yüklenmesi için)
                 print("[INFO] Sayfanın yüklenmesi için 10 saniye bekleniyor...")
@@ -1218,7 +1231,7 @@ class SekerScraper:
                     print("[OK] Teminat Bedeli seçildi")
                     time.sleep(2)
                 else:
-                    print("[WARN] Teminat Bedeli seçilemedi, devam ediliyor...")
+                    print("[WARN] Teminat Bedeli seçilemedi, continuing...")
                     time.sleep(2)
             
             # Poliçe Süresi
@@ -1233,7 +1246,7 @@ class SekerScraper:
                     print("[OK] Poliçe Süresi seçildi")
                     time.sleep(2)
                 else:
-                    print("[WARN] Poliçe Süresi seçilemedi, devam ediliyor...")
+                    print("[WARN] Poliçe Süresi seçilemedi, continuing...")
                     time.sleep(2)
             
             # Coğrafi Sınırlar (SON)
@@ -1248,16 +1261,16 @@ class SekerScraper:
                     print("[OK] Coğrafi Sınırlar seçildi")
                     time.sleep(2)
                 else:
-                    print("[WARN] Coğrafi Sınırlar seçilemedi, devam ediliyor...")
+                    print("[WARN] Coğrafi Sınırlar seçilemedi, continuing...")
                     time.sleep(2)
             
             print("\n[OK] Tüm dropdown seçimleri tamamlandı")
             time.sleep(3)
             # --- YENİ MÜŞTERİ ARAMA SEKANSI (Sizin isteğiniz) ---
-            print("\n--- 5. ADIM: Müşteri Arama Başlatılıyor ---")
+            print("\n--- 5. ADIM: Customer Arama Başlatılıyor ---")
 
             # 5.1: Arama Trigger'ına tıkla
-            print("[INFO] Müşteri arama trigger'ına tıklanıyor...")
+            print("[INFO] Customer arama trigger'ına tıklanıyor...")
             # Sizin HTML'inizdeki ID (ext-gen260) dinamik olabilir, class'ı kullanmak daha güvenli
             arama_trigger_selectors = [
                 '#ext-gen260' 
@@ -1270,7 +1283,7 @@ class SekerScraper:
                 print("[INFO] Arama penceresinin açılması için 5 saniye bekleniyor...")
                 time.sleep(7)
             else:
-                print("[ERROR] Müşteri arama trigger'ı bulunamadı")
+                print("[ERROR] Customer arama trigger'ı bulunamadı")
                 self._take_screenshot(page, "seyahat_arama_trigger_not_found")
                 return False
 
@@ -1284,7 +1297,7 @@ class SekerScraper:
             if tc_arama_input:
                 if tc_no:
                     tc_arama_input.fill(tc_no)
-                    print(f"[OK] TC No (arama) yazıldı: {tc_no}")
+                    print(f"[OK] TC No (arama) written: {tc_no}")
                 else:
                     print("[WARN] TC No bilgisi verilmedi.")
             else:
@@ -1302,7 +1315,7 @@ class SekerScraper:
             if tarih_arama_input:
                 if dogum_tarihi:
                     tarih_arama_input.fill(dogum_tarihi)
-                    print(f"[OK] Doğum Tarihi (arama) yazıldı: {dogum_tarihi}")
+                    print(f"[OK] Doğum Tarihi (arama) written: {dogum_tarihi}")
                 else:
                     print("[WARN] Doğum Tarihi bilgisi verilmedi.")
             else:
@@ -1331,14 +1344,14 @@ class SekerScraper:
                 ara_btn = self._first_visible(frame, ara_btn_selectors)
                 if ara_btn:
                     ara_btn.click()
-                    print("[OK] Ara butonuna tıklandı (fallback)")
+                    print("[OK] Search button clicked (fallback)")
                     time.sleep(5)
                 else:
-                    print("[WARN] Ara butonu da bulunamadı, devam ediliyor...")
+                    print("[WARN] Ara butonu da bulunamadı, continuing...")
                     time.sleep(3)
             # --- YENİ SEKANSI BURADA BİTİR ---
 
-            print("\n--- 5.5 ADIM: Arama Sonucunda Müşteriye Çift Tıklanıyor ---")
+            print("\n--- 5.5 ADIM: Arama Sonucunda Customerye Çift Tıklanıyor ---")
             
             # Grid'deki satır'ı bul
             grid_row_selectors = [
@@ -1350,7 +1363,7 @@ class SekerScraper:
             grid_row = self._first_visible(frame, grid_row_selectors)
             if grid_row:
                 print("[OK] Grid satırı bulundu")
-                print("[INFO] Müşteriye çift tıklanıyor...")
+                print("[INFO] Customerye çift tıklanıyor...")
                 grid_row.dblclick()
                 print("[OK] Çift tıklama yapıldı")
                 time.sleep(10)
@@ -1385,7 +1398,7 @@ class SekerScraper:
                 print("[OK] Uyarı dialog açıldı")
                 time.sleep(1)
             except:
-                print("[WARN] Uyarı dialog beklenen zamanda açılmadı, yine de devam ediliyor...")
+                print("[WARN] Uyarı dialog beklenen zamanda açılmadı, yine de continuing...")
             
             # "Evet" butonunu bul ve tıkla
             evet_btn_selectors = [
@@ -1506,21 +1519,21 @@ class SekerScraper:
             if not u: 
                 browser.close(); raise RuntimeError("Kullanıcı adı inputu bulunamadı.")
             u.fill(self.username, timeout=self.timeout)
-            print("[OK] Kullanıcı adı yazıldı.")
+            print("[OK] Kullanıcı adı written.")
 
             # Şifre
             p = self._first_visible(page, self.PASS_CANDS)
             if not p:
                 browser.close(); raise RuntimeError("Şifre inputu bulunamadı.")
             p.fill(self.password, timeout=self.timeout)
-            print("[OK] Şifre yazıldı.")
+            print("[OK] Şifre written.")
 
             # Giriş
             btn = self._first_visible(page, self.LOGIN_BTN_CANDS)
             if not btn:
-                browser.close(); raise RuntimeError("Giriş butonu bulunamadı.")
+                browser.close(); raise RuntimeError("Login button not found.")
             btn.click(timeout=8000)
-            print("[OK] Giriş butonuna tıklandı.")
+            print("[OK] Login button clicked.")
 
             # Buradan sonrası MANUEL: TOTP kodunu ve Doğrula'yı sen gir/klikle.
             time.sleep(5)

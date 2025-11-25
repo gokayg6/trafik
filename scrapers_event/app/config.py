@@ -1,7 +1,14 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load environment variables with UTF-8 encoding
+try:
+    load_dotenv(encoding='utf-8')
+except (UnicodeDecodeError, Exception):
+    try:
+        load_dotenv()
+    except Exception:
+        pass
 
 class Settings:
     KORU_LOGIN_URL = os.getenv("KORU_LOGIN_URL", "").strip()

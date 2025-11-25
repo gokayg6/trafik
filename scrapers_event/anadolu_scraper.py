@@ -1,16 +1,30 @@
 import os
+import sys
 import json
+import asyncio
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 import time
 import random
 
+# Windows için asyncio event loop policy ayarla (Playwright için)
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 class AnadoluScraper:
     def __init__(self):
-        load_dotenv()
+        # Load environment variables with UTF-8 encoding
+        try:
+            load_dotenv(encoding='utf-8')
+        except (UnicodeDecodeError, Exception):
+            try:
+                load_dotenv()
+            except Exception:
+                pass
         self.login_url = os.getenv("ANADOLU_LOGIN_URL", "").strip()
         self.username  = os.getenv("ANADOLU_USER", "").strip()
-        self.password  = os.getenv("ANADOLU_PASS", "").strip()
+        self.password  = os.getenv("ANADOLU_PASS", "Amasya446").strip()  # Default: Amasya446
+        self.totp_secret = os.getenv("ANADOLU_TOTP_SECRET", "LNPTT4LB6AI7TCKBQSFF2PPQ5U22JYB3").strip()  # Google Authenticator secret
         self.headless  = os.getenv("HEADLESS", "false").lower() == "true"
         self.timeout   = int(os.getenv("ANADOLU_TIMEOUT_MS", "45000"))
         self.session_file = "anadolu_session.json"  # Tüm oturum verileri
@@ -59,7 +73,7 @@ class AnadoluScraper:
             username_input = self._find_element(page, self.USER_CANDS, "Kullanıcı adı")
             if username_input:
                 username_input.fill(self.username)
-                print("[INFO] Kullanıcı adı girildi.")
+                print("[INFO] Username entered.")
             else:
                 raise Exception("Kullanıcı adı alanı bulunamadı!")
             
@@ -69,7 +83,7 @@ class AnadoluScraper:
             password_input = self._find_element(page, self.PASS_CANDS, "Şifre")
             if password_input:
                 password_input.fill(self.password)
-                print("[INFO] Şifre girildi.")
+                print("[INFO] Password entered.")
             else:
                 raise Exception("Şifre alanı bulunamadı!")
             
@@ -79,18 +93,96 @@ class AnadoluScraper:
             login_button = self._find_element(page, self.LOGIN_BTN_CANDS, "Giriş butonu")
             if login_button:
                 login_button.click()
-                print("[INFO] Giriş butonuna tıklandı.")
+                print("[INFO] Login button clicked.")
                 time.sleep(random.uniform(2, 4))
             else:
-                raise Exception("Giriş butonu bulunamadı!")
+                raise Exception("Login button not found!")
             
             # Giriş işleminin tamamlanmasını bekle
             page.wait_for_load_state("networkidle", timeout=self.timeout)
-            print("[SUCCESS] Giriş işlemi tamamlandı!")
+            print("[SUCCESS] Login process completed!")
+            
+            # TOTP doğrulaması varsa yap
+            if self.totp_secret:
+                self._verify_totp(page)
             
         except Exception as e:
             print(f"[ERROR] Giriş sırasında hata: {e}")
             raise
+    
+    def _verify_totp(self, page):
+        """TOTP/Google Authenticator doğrulaması yap"""
+        try:
+            import pyotp
+            
+            print("[INFO] TOTP/Google Authenticator doğrulaması yapılıyor...")
+            time.sleep(2)  # TOTP ekranının yüklenmesi için bekle
+            
+            # TOTP input alanını bul
+            totp_selectors = [
+                'input#txtGACode',
+                'input[name="txtGACode"]',
+                'input[placeholder*="Doğrulama"]',
+                'input[placeholder*="Code"]',
+                'input[type="text"]'
+            ]
+            
+            totp_input = None
+            for selector in totp_selectors:
+                try:
+                    element = page.query_selector(selector)
+                    if element and element.is_visible():
+                        totp_input = element
+                        print(f"[INFO] TOTP input alanı bulundu: {selector}")
+                        break
+                except:
+                    continue
+            
+            if not totp_input:
+                print("[WARNING] TOTP input alanı bulunamadı, TOTP gerekmiyor olabilir")
+                return True
+            
+            # TOTP kodu oluştur
+            totp = pyotp.TOTP(self.totp_secret)
+            code = totp.now()
+            print(f"[INFO] TOTP kodu oluşturuldu: {code}")
+            
+            # TOTP kodunu gir
+            totp_input.fill(code)
+            print("[INFO] TOTP code entered")
+            time.sleep(1)
+            
+            # Doğrula butonunu bul ve tıkla
+            verify_selectors = [
+                'button#btnValidateTwoFactor',
+                'button:has-text("Doğrula")',
+                'button:has-text("Devam")',
+                'input[type="submit"]'
+            ]
+            
+            for selector in verify_selectors:
+                try:
+                    verify_btn = page.query_selector(selector)
+                    if verify_btn and verify_btn.is_visible():
+                        verify_btn.click()
+                        print("[INFO] TOTP doğrula butonuna tıklandı")
+                        time.sleep(2)
+                        break
+                except:
+                    continue
+            
+            # Doğrulama sonucunu bekle
+            page.wait_for_load_state("networkidle", timeout=self.timeout)
+            print("[SUCCESS] TOTP doğrulaması tamamlandı!")
+            return True
+            
+        except ImportError:
+            print("[ERROR] pyotp kütüphanesi yüklü değil. 'pip install pyotp' yapın.")
+            return False
+        except Exception as e:
+            print(f"[WARNING] TOTP doğrulaması sırasında hata: {e}")
+            # TOTP hatası kritik değil, devam et
+            return True
 
     def _save_session_data(self, page, context):
         """Tüm oturum verilerini kaydet (cookies, localStorage, sessionStorage)"""
@@ -169,7 +261,7 @@ class AnadoluScraper:
                     print(f"[WARNING] sessionStorage yüklenemedi: {e}")
             
             # Sayfayı yenile
-            print("[INFO] Sayfa yenileniyor...")
+            print("[INFO] Reloading page...")
             page.reload(wait_until="networkidle")
             
             print(f"[SUCCESS] Oturum verileri yüklendi: {self.session_file}")

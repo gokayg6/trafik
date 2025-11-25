@@ -5,10 +5,15 @@
 import os
 import sys
 import logging
+import asyncio
 from dotenv import load_dotenv
 import pyotp
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 import time
+
+# Windows için asyncio event loop policy ayarla (Playwright için)
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Logging kurulumu
 logging.basicConfig(
@@ -19,7 +24,14 @@ logger = logging.getLogger(__name__)
 
 class KoruScraper:
     def __init__(self):
-        load_dotenv()
+        # Load environment variables with UTF-8 encoding
+        try:
+            load_dotenv(encoding='utf-8')
+        except (UnicodeDecodeError, Exception):
+            try:
+                load_dotenv()
+            except Exception:
+                pass
         self.login_url = os.getenv("KORU_LOGIN_URL", "").strip()
         self.headless = os.getenv("HEADLESS", "false").lower() == "true"
         self.timeout_ms = int(os.getenv("KORU_TIMEOUT_MS", "45000"))
@@ -66,11 +78,11 @@ class KoruScraper:
 
             username_field.wait_for(state="visible", timeout=self.timeout_ms)
             username_field.fill(self.username, timeout=self.timeout_ms)
-            logger.info("Kullanıcı adı girildi")
+            logger.info("Username entered")
 
             password_field.wait_for(state="visible", timeout=self.timeout_ms)
             password_field.fill(self.password, timeout=self.timeout_ms)
-            logger.info("Şifre girildi")
+            logger.info("Password entered")
 
             return True
         except Exception as e:
@@ -83,7 +95,7 @@ class KoruScraper:
             login_btn = page.locator(self.sel_login_btn).first
             login_btn.wait_for(state="visible", timeout=self.timeout_ms)
             login_btn.click(timeout=8000)
-            logger.info("Giriş butonuna tıklandı")
+            logger.info("Login button clicked")
             return True
         except Exception as e:
             logger.error(f"Giriş butonu tıklanamadı: {e}")
@@ -144,7 +156,7 @@ class KoruScraper:
             code = totp.now()
 
             totp_input.fill(code, timeout=self.timeout_ms)
-            logger.info(f"TOTP kodu girildi: {code}")
+            logger.info(f"TOTP code entered: {code}")
 
             verify_btn = page.locator(self.sel_totp_button).first
             verify_btn.wait_for(state="visible", timeout=self.timeout_ms)
@@ -164,7 +176,7 @@ class KoruScraper:
         Trafik sigortası teklif formunu doldurur ve teklifi alır.
         """
         try:
-            logger.info("Trafik sigortası formu dolduruluyor...")
+            logger.info("Trafik sigortası form being filled...")
 
             # 🔹 1. Hızlı Trafik (Sepet) ikonuna tıklama
             trafik_icon = page.locator("table#police_hizli_trafik_sepet img#img_police_hizli_trafik_sepet")
@@ -191,8 +203,8 @@ class KoruScraper:
                 logger.info("Doğum tarihi zaten dolu, atlandı")
 
             # 🔹 4. Plaka İl ve Plaka No alanlarını kontrol et ve boşsa doldur
-            plaka_il_input = page.locator("#plakaIlKoduInput")
-            plaka_no_input = page.locator("#plakaKoduInput")
+            plaka_il_input = page.locator("#plakaIlCodeuInput")
+            plaka_no_input = page.locator("#plakaCodeuInput")
 
             plaka_il_value = plaka_il_input.input_value().strip()
             plaka_no_value = plaka_no_input.input_value().strip()
@@ -220,7 +232,7 @@ class KoruScraper:
             else:
                 logger.info("Tescil numarası zaten dolu, atlandı")
 
-            tescil_kod_input = page.locator("#tescilKodInput")
+            tescil_kod_input = page.locator("#tescilCodeInput")
             if not tescil_kod_input.input_value().strip():
                 tescil_kod_input.fill(teklif_data["tescil_kod"])
                 logger.info("Tescil kodu girildi")
@@ -257,7 +269,7 @@ class KoruScraper:
                 # Tabloyu al
                 satirlar = page.locator('#tblCaprazSatisTeklifTablosu tbody tr')
                 satir_sayisi = satirlar.count()
-                logger.info(f"Toplam {satir_sayisi} teklif satırı bulundu")
+                logger.info(f"Toplam {satir_sayisi} quote rows found")
 
                 trafik_teklifi = None
 
@@ -307,7 +319,7 @@ class KoruScraper:
                     page_content = page.content()
                     with open("debug_page.html", "w", encoding="utf-8") as f:
                         f.write(page_content)
-                    logger.info("Hata ayıklama için sayfa kaynağı 'debug_page.html' dosyasına kaydedildi")
+                    logger.info("Hata ayıklama için sayfa kaynağı 'debug_page.html' saved to file")
                 except:
                     pass
 
@@ -332,7 +344,7 @@ class KoruScraper:
         }
         """
         try:
-            logger.info("Kasko sigortası formu dolduruluyor...")
+            logger.info("Kasko sigortası form being filled...")
 
             # 🔹 1. Hızlı Kasko (Sepet) ikonuna tıklama
             kasko_icon = page.locator("table#police_hizli_kasko_sepet img#img_police_hizli_kasko_sepet")
@@ -359,8 +371,8 @@ class KoruScraper:
                 logger.info("Doğum tarihi zaten dolu, atlandı")
 
             # 🔹 4. Plaka İl ve Plaka No alanlarını kontrol et ve boşsa doldur
-            plaka_il_input = page.locator("#plakaIlKoduInput")
-            plaka_no_input = page.locator("#plakaKoduInput")
+            plaka_il_input = page.locator("#plakaIlCodeuInput")
+            plaka_no_input = page.locator("#plakaCodeuInput")
 
             plaka_il_value = plaka_il_input.input_value().strip()
             plaka_no_value = plaka_no_input.input_value().strip()
@@ -380,7 +392,7 @@ class KoruScraper:
                 logger.info("Plaka numarası zaten dolu, atlandı")
 
             # 🔹 5. Tescil kodu boşsa doldur
-            tescil_kod_input = page.locator("#tescilKodInput")
+            tescil_kod_input = page.locator("#tescilCodeInput")
             if not tescil_kod_input.input_value().strip():
                 tescil_kod_input.fill(teklif_data["tescil_kod"])
                 logger.info("Tescil kodu girildi")
@@ -423,7 +435,7 @@ class KoruScraper:
                 # Tabloyu al
                 satirlar = page.locator('#tblCaprazSatisTeklifTablosu tbody tr')
                 satir_sayisi = satirlar.count()
-                logger.info(f"Toplam {satir_sayisi} teklif satırı bulundu")
+                logger.info(f"Toplam {satir_sayisi} quote rows found")
 
                 kasko_teklifleri = []
 
@@ -478,7 +490,7 @@ class KoruScraper:
             logger.error(f"[HATA] Kasko sigortası teklifi oluşturulamadı: {e}")
             return False
 
-    def run(self):
+    def run(self, trafik_data=None, kasko_data=None):
         """Ana çalıştırma fonksiyonu"""
         browser = None
         try:
@@ -491,7 +503,7 @@ class KoruScraper:
                 logger.info(f"Login sayfası açıldı: {self.login_url}")
 
                 if not self._validate_selectors(page):
-                    logger.warning("Selector doğrulaması başarısız, devam ediliyor...")
+                    logger.warning("Selector doğrulaması başarısız, continuing...")
 
                 if not self._fill_credentials(page):
                     raise RuntimeError("Kimlik bilgileri girilemedi")
@@ -508,38 +520,24 @@ class KoruScraper:
 
                 self._close_popups(page)
 
+                result = {}
+                
                 # Trafik sigortası teklif işlemi
-                trafik_teklif_data = {
-                    "tc": "32083591236",
-                    "dogum_tarihi": "10.03.1965",
-                    "plaka_il": "06",
-                    "plaka_no": "HT203",
-                    "tescil_kod": "ER",
-                    "tescil_no": "993016"
-                }
-                trafik_teklifi = self.create_trafik_sigortasi(page, trafik_teklif_data)
-                logger.info(f"Trafik teklifi sonucu: {trafik_teklifi}")
+                if trafik_data:
+                    trafik_teklifi = self.create_trafik_sigortasi(page, trafik_data)
+                    logger.info(f"Trafik teklifi sonucu: {trafik_teklifi}")
+                    result["trafik"] = trafik_teklifi
     
                 # Kasko sigortası teklif işlemi
-                # kasko_teklif_data = {
-                #     "tc": "32083591236",
-                #     "dogum_tarihi": "10.03.1965",
-                #     "plaka_il": "06",
-                #     "plaka_no": "HT203",
-                #     "tescil_kod": "ER",
-                #     "tescil_no": "993016"
-                # }
-                # kasko_teklifi = self.create_kasko_sigortasi(page, kasko_teklif_data)
-                # logger.info(f"Kasko teklifi sonucu: {kasko_teklifi}")
+                if kasko_data:
+                    kasko_teklifi = self.create_kasko_sigortasi(page, kasko_data)
+                    logger.info(f"Kasko teklifi sonucu: {kasko_teklifi}")
+                    result["kasko"] = kasko_teklifi
     
                 if not self.headless:
                     input("\nTarayıcı açık. Kapatmak için Enter'a basın...")
     
-                return {
-                    # "trafik": trafik_teklifi,
-                    # "kasko": kasko_teklifi,
-                    "trafik":trafik_teklifi
-                }
+                return result if result else False
     
         except Exception as e:
             logger.error(f"Ölümcül hata: {e}")
@@ -548,6 +546,14 @@ class KoruScraper:
             if browser:
                 browser.close()
                 logger.info("Tarayıcı kapatıldı")
+    
+    def run_trafik_with_data(self, teklif_data):
+        """Trafik sigortası için scraper çalıştır"""
+        return self.run(trafik_data=teklif_data)
+    
+    def run_kasko_with_data(self, teklif_data):
+        """Kasko sigortası için scraper çalıştır"""
+        return self.run(kasko_data=teklif_data)
 
 if __name__ == "__main__":
     try:
